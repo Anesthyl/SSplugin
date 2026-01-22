@@ -11,13 +11,13 @@ import java.util.Map;
 import java.util.Random;
 
 /**
- * Smelter's Delight Enchant (version-safe)
+ * Smelter's Delight Enchant
  *
  * - Converts mined ores into smelted ingots.
  * - Fortune-compatible: scales naturally with the Fortune level on the pickaxe.
- * - Applies only to pickaxes.
+ * - Pickaxe only.
  * - Table rarity: 10% chance at level 30.
- * - Internal effect level: 1-3 (extra drop scaling)
+ * - Internal level scaling: 1-3 for extra drops.
  */
 public class SmeltersDelightEnchant extends CustomEnchant {
 
@@ -51,20 +51,20 @@ public class SmeltersDelightEnchant extends CustomEnchant {
         Material smelted = SMELT_MAP.get(block.getType());
         if (smelted == null) return;
 
-        // Cancel normal drops
         block.setType(Material.AIR);
 
-        // Version-safe Fortune: check persistent enchantments manually
+        // Version-safe Fortune: read vanilla Fortune level manually
         ItemStack tool = player.getInventory().getItemInMainHand();
         int fortuneLevel = 0;
         if (tool != null && tool.getEnchantments() != null) {
-            fortuneLevel = tool.getEnchantments().getOrDefault(org.bukkit.enchantments.Enchantment.getByName("FORTUNE"), 0);
+            fortuneLevel = tool.getEnchantments().getOrDefault(
+                    org.bukkit.enchantments.Enchantment.getByName("FORTUNE"), 0
+            );
         }
 
-        // Drop calculation: base + fortune + level scaling
         int amount = 1 + RANDOM.nextInt(level + 1); // internal level scaling
         for (int i = 0; i < fortuneLevel; i++) {
-            if (RANDOM.nextDouble() < 0.33) amount++; // vanilla-style fortune chance
+            if (RANDOM.nextDouble() < 0.33) amount++; // vanilla-style fortune
         }
 
         block.getWorld().dropItemNaturally(block.getLocation(), new ItemStack(smelted, amount));
@@ -77,10 +77,7 @@ public class SmeltersDelightEnchant extends CustomEnchant {
 
     @Override
     public int getTableLevel() {
-        // 10% chance to appear
-        if (RANDOM.nextDouble() > 0.10) return 0;
-
-        return 1 + RANDOM.nextInt(getMaxLevel());
+        return RANDOM.nextDouble() <= 0.10 ? 1 + RANDOM.nextInt(getMaxLevel()) : 0;
     }
 
     @Override

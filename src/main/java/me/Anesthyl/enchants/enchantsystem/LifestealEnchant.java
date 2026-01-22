@@ -1,19 +1,24 @@
 package me.Anesthyl.enchants.enchantsystem;
 
+import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.util.Random;
+
 /**
  * Lifesteal Enchant
  *
- * - Heals player on hitting a target.
- * - Works in combat only.
- * - Applies to swords.
- * - Can appear on enchantment table, level 1-3, uncommon.
+ * - Heals the player on hit.
+ * - Sword only.
+ * - Table rarity: 15%.
+ * - Fully version-safe.
  */
 public class LifestealEnchant extends CustomEnchant {
+
+    private static final Random RANDOM = new Random();
 
     public LifestealEnchant(JavaPlugin plugin) {
         super(plugin, "lifesteal", "§aLifesteal", 3);
@@ -26,11 +31,14 @@ public class LifestealEnchant extends CustomEnchant {
 
     @Override
     public void onHit(Player attacker, LivingEntity target, int level) {
-        // Heal player: level * 2 HP per hit
-        double heal = 2.0 * level;
-        double maxHealth = attacker.getAttribute(org.bukkit.attribute.Attribute.GENERIC_MAX_HEALTH).getValue();
-        double newHealth = Math.min(attacker.getHealth() + heal, maxHealth);
-        attacker.setHealth(newHealth);
+        double heal = 2.0 * level; // Scales with enchant level
+        double maxHealth = 20.0; // default vanilla max health
+
+        if (attacker.getAttribute(Attribute.MAX_HEALTH) != null) {
+            maxHealth = attacker.getAttribute(Attribute.MAX_HEALTH).getValue();
+        }
+
+        attacker.setHealth(Math.min(attacker.getHealth() + heal, maxHealth));
     }
 
     @Override
@@ -40,18 +48,17 @@ public class LifestealEnchant extends CustomEnchant {
 
     @Override
     public boolean canAppearOnTable() {
-        return true; // Rare, table-eligible
+        return true;
     }
 
     @Override
     public int getTableLevel() {
-        // 15% base chance
-        if (Math.random() > 0.15) return 0;
-        return 1 + new java.util.Random().nextInt(getMaxLevel());
+        return RANDOM.nextDouble() <= 0.15 ? 1 + RANDOM.nextInt(getMaxLevel()) : 0;
     }
 
     @Override
     public void onTableEnchant(ItemStack item, int level) {
-        item.getItemMeta().getPersistentDataContainer().set(getKey(), org.bukkit.persistence.PersistentDataType.INTEGER, level);
+        item.getItemMeta().getPersistentDataContainer()
+                .set(getKey(), org.bukkit.persistence.PersistentDataType.INTEGER, level);
     }
 }

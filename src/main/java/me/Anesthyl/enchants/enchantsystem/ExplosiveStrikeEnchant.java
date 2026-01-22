@@ -1,20 +1,25 @@
 package me.Anesthyl.enchants.enchantsystem;
 
-import org.bukkit.entity.LivingEntity;
+import org.bukkit.Location;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.Location;
-import org.bukkit.World;
+import org.bukkit.util.Vector;
+
+import java.util.Random;
 
 /**
  * Explosive Strike Enchant
  *
- * - Causes small explosions on hitting a target.
- * - Applies to axes and swords.
- * - Table eligible, rare, levels 1-3.
+ * - Causes a small explosion effect when hitting an entity.
+ * - Sword only.
+ * - Table rarity: 15%.
+ * - Level scales blast radius.
  */
 public class ExplosiveStrikeEnchant extends CustomEnchant {
+
+    private static final Random RANDOM = new Random();
 
     public ExplosiveStrikeEnchant(JavaPlugin plugin) {
         super(plugin, "explosive_strike", "§cExplosive Strike", 3);
@@ -22,19 +27,21 @@ public class ExplosiveStrikeEnchant extends CustomEnchant {
 
     @Override
     public boolean canApply(ItemStack item) {
-        String type = item.getType().toString();
-        return type.endsWith("_SWORD") || type.endsWith("_AXE");
+        return item != null && item.getType().toString().endsWith("_SWORD");
     }
 
     @Override
-    public void onHit(Player attacker, LivingEntity target, int level) {
+    public void onHit(Player attacker, Entity target, int level) {
         Location loc = target.getLocation();
-        World world = loc.getWorld();
-        if (world == null) return;
+        double radius = 1.0 + (0.5 * level);
 
-        // Explosion radius scales with level
-        float power = 0.5f * level;
-        world.createExplosion(loc.getX(), loc.getY(), loc.getZ(), power, false, false); // no fire, no block damage
+        // Simple knockback explosion (no terrain damage)
+        for (Entity entity : loc.getWorld().getNearbyEntities(loc, radius, radius, radius)) {
+            if (entity instanceof Player || entity instanceof org.bukkit.entity.LivingEntity) {
+                Vector knockback = entity.getLocation().toVector().subtract(loc.toVector()).normalize().multiply(0.5 * level);
+                entity.setVelocity(knockback);
+            }
+        }
     }
 
     @Override
@@ -49,13 +56,12 @@ public class ExplosiveStrikeEnchant extends CustomEnchant {
 
     @Override
     public int getTableLevel() {
-        // 12% chance to appear on table
-        if (Math.random() > 0.12) return 0;
-        return 1 + new java.util.Random().nextInt(getMaxLevel());
+        return RANDOM.nextDouble() <= 0.15 ? 1 + RANDOM.nextInt(getMaxLevel()) : 0;
     }
 
     @Override
     public void onTableEnchant(ItemStack item, int level) {
-        item.getItemMeta().getPersistentDataContainer().set(getKey(), org.bukkit.persistence.PersistentDataType.INTEGER, level);
+        item.getItemMeta().getPersistentDataContainer()
+                .set(getKey(), org.bukkit.persistence.PersistentDataType.INTEGER, level);
     }
 }
