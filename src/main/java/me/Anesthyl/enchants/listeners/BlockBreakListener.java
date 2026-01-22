@@ -2,7 +2,6 @@ package me.Anesthyl.enchants.listeners;
 
 import me.Anesthyl.enchants.enchantsystem.CustomEnchant;
 import me.Anesthyl.enchants.enchantsystem.EnchantManager;
-import me.Anesthyl.enchants.enchantsystem.SmeltersDelightEnchant;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
@@ -24,16 +23,7 @@ public class BlockBreakListener implements Listener {
         Map<CustomEnchant, Integer> enchants = enchantManager.getItemEnchants(tool);
 
         for (Map.Entry<CustomEnchant, Integer> entry : enchants.entrySet()) {
-            CustomEnchant enchant = entry.getKey();
-            int level = entry.getValue();
-
-            if (enchant instanceof SmeltersDelightEnchant smelter) {
-                // Only cancel normal drops if block is smeltable
-                if (smelter.getSmeltedBlock(event.getBlock().getType()) != null) {
-                    event.setDropItems(false); // Cancel normal drops
-                    smelter.onBlockBreak(event.getPlayer(), event.getBlock(), level);
-                }
-            }
+            entry.getKey().onBlockBreak(event.getPlayer(), event.getBlock(), entry.getValue());
         }
     }
 }

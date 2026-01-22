@@ -1,43 +1,80 @@
 package me.Anesthyl.enchants.enchantsystem;
 
+import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 
 import java.util.*;
 
+/**
+ * Manages all custom enchants.
+ * Responsibilities:
+ * - Register and track enchants.
+ * - Query item enchants.
+ * - Apply table enchants.
+ * - Helper methods for listeners.
+ */
 public class EnchantManager {
 
     private final Map<String, CustomEnchant> enchants = new HashMap<>();
 
-    // Register a new enchant
+    // ------------------------------
+    // Registration
+    // ------------------------------
+
     public void registerEnchant(CustomEnchant enchant) {
-        enchants.put(enchant.getKey().getKey(), enchant);
+        enchants.put(enchant.getKey().getKey(), enchant); // store by string key
     }
 
-    // Get all registered enchants
     public Collection<CustomEnchant> getEnchants() {
         return enchants.values();
     }
 
-    // Get enchants applied on an item
+    public Optional<CustomEnchant> getEnchant(String key) {
+        return Optional.ofNullable(enchants.get(key));
+    }
+
+    // ------------------------------
+    // Item Queries
+    // ------------------------------
+
     public Map<CustomEnchant, Integer> getItemEnchants(ItemStack item) {
         Map<CustomEnchant, Integer> found = new HashMap<>();
-        if (!item.hasItemMeta()) return found;
+        if (item == null || !item.hasItemMeta()) return found;
 
         PersistentDataContainer pdc = item.getItemMeta().getPersistentDataContainer();
 
         for (CustomEnchant enchant : enchants.values()) {
             Integer level = pdc.get(enchant.getKey(), PersistentDataType.INTEGER);
-            if (level != null) {
+            if (level != null && level > 0) {
                 found.put(enchant, level);
             }
         }
         return found;
     }
+
+    public boolean hasEnchant(ItemStack item, CustomEnchant enchant) {
+        return getItemEnchants(item).containsKey(enchant);
+    }
+
+    public int getEnchantLevel(ItemStack item, CustomEnchant enchant) {
+        return getItemEnchants(item).getOrDefault(enchant, 0);
+    }
+
+    // ------------------------------
+    // Table Application
+    // ------------------------------
+
+    public void applyTableEnchants(ItemStack item) {
+        for (CustomEnchant enchant : enchants.values()) {
+            if (!enchant.canApply(item)) continue;
+            if (!enchant.canAppearOnTable()) continue;
+
+            int level = enchant.getTableLevel();
+            if (level <= 0) continue;
+
+            enchant.onTableEnchant(item, level);
+        }
+    }
 }
-//A way to register enchants
-//
-//A way to check what enchants an item has
-//
-//Ready for listeners and applying effects

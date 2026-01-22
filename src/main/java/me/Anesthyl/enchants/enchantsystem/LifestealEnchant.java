@@ -5,26 +5,53 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
+/**
+ * Lifesteal Enchant
+ *
+ * - Heals player on hitting a target.
+ * - Works in combat only.
+ * - Applies to swords.
+ * - Can appear on enchantment table, level 1-3, uncommon.
+ */
 public class LifestealEnchant extends CustomEnchant {
 
     public LifestealEnchant(JavaPlugin plugin) {
-        super(plugin, "lifesteal", "§cLifesteal", 3);
+        super(plugin, "lifesteal", "§aLifesteal", 3);
     }
 
     @Override
     public boolean canApply(ItemStack item) {
-        // Only swords
         return item != null && item.getType().toString().endsWith("_SWORD");
     }
 
     @Override
     public void onHit(Player attacker, LivingEntity target, int level) {
-        if (target == null || attacker == null) return;
-
-        // Heal 0.5 hearts per level
-        double heal = 0.25 * level;
-        double newHealth = Math.min(attacker.getHealth() + heal, attacker.getMaxHealth());
-
+        // Heal player: level * 2 HP per hit
+        double heal = 2.0 * level;
+        double maxHealth = attacker.getAttribute(org.bukkit.attribute.Attribute.GENERIC_MAX_HEALTH).getValue();
+        double newHealth = Math.min(attacker.getHealth() + heal, maxHealth);
         attacker.setHealth(newHealth);
+    }
+
+    @Override
+    public void onBlockBreak(Player player, org.bukkit.block.Block block, int level) {
+        // Not used
+    }
+
+    @Override
+    public boolean canAppearOnTable() {
+        return true; // Rare, table-eligible
+    }
+
+    @Override
+    public int getTableLevel() {
+        // 15% base chance
+        if (Math.random() > 0.15) return 0;
+        return 1 + new java.util.Random().nextInt(getMaxLevel());
+    }
+
+    @Override
+    public void onTableEnchant(ItemStack item, int level) {
+        item.getItemMeta().getPersistentDataContainer().set(getKey(), org.bukkit.persistence.PersistentDataType.INTEGER, level);
     }
 }

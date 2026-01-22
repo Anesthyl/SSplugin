@@ -25,10 +25,8 @@ public class CombatListener implements Listener {
         if (!(event.getEntity() instanceof LivingEntity target)) return;
 
         ItemStack weapon = player.getInventory().getItemInMainHand();
-
         Map<CustomEnchant, Integer> enchants = enchantManager.getItemEnchants(weapon);
 
-        // Trigger onHit for all enchants on this item
         enchants.forEach((enchant, level) -> enchant.onHit(player, target, level));
     }
 }
