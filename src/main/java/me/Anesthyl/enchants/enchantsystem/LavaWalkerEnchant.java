@@ -1,6 +1,7 @@
 package me.Anesthyl.enchants.enchantsystem;
 
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerMoveEvent;
@@ -8,9 +9,9 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeModifier;
+import org.bukkit.inventory.EquipmentSlotGroup;
 
 import java.util.Random;
-import java.util.UUID;
 
 /**
  * Lava Walker Enchant
@@ -26,18 +27,18 @@ import java.util.UUID;
 public class LavaWalkerEnchant extends CustomEnchant {
 
     private static final Random RANDOM = new Random();
-
-    // Version-safe speed boost modifier
-    @SuppressWarnings("deprecation") // Constructor is deprecated but safe in 1.21
-    private static final AttributeModifier SPEED_BOOST = new AttributeModifier(
-            UUID.fromString("123e4567-e89b-12d3-a456-426614174000"), // fixed UUID
-            "lava_walker_speed",
-            0.1, // 10% speed boost
-            AttributeModifier.Operation.ADD_SCALAR
-    );
+    private final NamespacedKey modifierKey;
+    private final AttributeModifier speedBoost;
 
     public LavaWalkerEnchant(JavaPlugin plugin) {
         super(plugin, "lava_walker", "§6Lava Walker", 1); // single level
+        this.modifierKey = new NamespacedKey(plugin, "lava_walker_speed");
+        this.speedBoost = new AttributeModifier(
+                modifierKey,
+                0.1, // 10% speed boost
+                AttributeModifier.Operation.ADD_SCALAR,
+                EquipmentSlotGroup.FEET
+        );
     }
 
     @Override
@@ -91,13 +92,13 @@ public class LavaWalkerEnchant extends CustomEnchant {
             under.setType(Material.OBSIDIAN);
 
             // Apply speed boost if not already present
-            if (!player.getAttribute(Attribute.MOVEMENT_SPEED).getModifiers().contains(SPEED_BOOST)) {
-                player.getAttribute(Attribute.MOVEMENT_SPEED).addModifier(SPEED_BOOST);
+            if (!player.getAttribute(Attribute.MOVEMENT_SPEED).getModifiers().contains(speedBoost)) {
+                player.getAttribute(Attribute.MOVEMENT_SPEED).addModifier(speedBoost);
             }
         } else {
             // Remove speed boost if player is off obsidian
-            if (player.getAttribute(Attribute.MOVEMENT_SPEED).getModifiers().contains(SPEED_BOOST)) {
-                player.getAttribute(Attribute.MOVEMENT_SPEED).removeModifier(SPEED_BOOST);
+            if (player.getAttribute(Attribute.MOVEMENT_SPEED).getModifiers().contains(speedBoost)) {
+                player.getAttribute(Attribute.MOVEMENT_SPEED).removeModifier(speedBoost);
             }
         }
     }

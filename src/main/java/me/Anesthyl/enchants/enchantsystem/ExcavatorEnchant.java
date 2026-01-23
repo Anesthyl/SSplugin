@@ -4,6 +4,7 @@ import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.Arrays;
@@ -87,7 +88,10 @@ public class ExcavatorEnchant extends CustomEnchant {
         }
 
         // Deduct durability for extra blocks mined
-        tool.setDurability((short) (tool.getDurability() + extraBlocksBroken));
+        if (tool.getItemMeta() instanceof Damageable damageable) {
+            damageable.setDamage(damageable.getDamage() + extraBlocksBroken);
+            tool.setItemMeta(damageable);
+        }
     }
 
     /**
