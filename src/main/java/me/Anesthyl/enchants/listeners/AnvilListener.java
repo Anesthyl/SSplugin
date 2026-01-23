@@ -7,8 +7,6 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.PrepareAnvilEvent;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.persistence.PersistentDataType;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -18,20 +16,16 @@ import java.util.Map;
 /**
  * AnvilListener
  *
- * Handles custom enchantment combination via anvils.
- *
- * Behavior:
- * - Combines levels of the same custom enchant on left + right item.
- * - Caps level at enchant.getMaxLevel().
- * - Preserves all other enchants on the left item.
- * - Fully version-safe: uses PersistentDataContainer.
- *
  * Dev Notes:
- * - PrepareAnvilEvent is called whenever the anvil preview slot updates.
- * - `left` is the first item in the anvil (primary item), `right` is the second (sacrificial).
- * - Clone the left item to create a new result rather than modifying original ItemStack directly.
- * - PersistentDataContainer is used for custom enchant storage (no reliance on Bukkit Enchantment enum).
- * - This system allows future enchants to automatically inherit stacking behavior.
+ * - Mimics vanilla enchant combination rules for custom enchants.
+ * - I + I → II
+ * - I + II → II
+ * - II + II → III
+ * - Caps at enchant.getMaxLevel().
+ * - Respects canApply() to prevent illegal transfers.
+ * - Enforces global compatibility rules via EnchantUtil.
+ * - Preserves all vanilla enchants and unrelated custom enchants.
+ * - Uses PrepareAnvilEvent (preview-safe, non-destructive).
  */
 public class AnvilListener implements Listener {
 
@@ -42,28 +36,22 @@ public class AnvilListener implements Listener {
     }
 
     @EventHandler
-    public void onAnvilCombine(PrepareAnvilEvent event) {
+    public void onPrepareAnvil(PrepareAnvilEvent event) {
         ItemStack left = event.getInventory().getItem(0);
         ItemStack right = event.getInventory().getItem(1);
 
-        // Null check to prevent errors
         if (left == null || right == null) return;
 
-        // Get enchants from both items
-        Map<CustomEnchant, Integer> leftEnchants = enchantManager.getItemEnchants(left);
-        Map<CustomEnchant, Integer> rightEnchants = enchantManager.getItemEnchants(right);
-        
-        // Skip if right item has no custom enchants
-        if (rightEnchants.isEmpty()) return;
-
-        // Clone left item to create a result
+        // Clone left item as the base result
         ItemStack result = left.clone();
-        ItemMeta meta = result.getItemMeta();
-        if (meta == null) return;
 
-        // Combine all enchants from both items
-        Map<CustomEnchant, Integer> combinedEnchants = new HashMap<>(leftEnchants);
-        
+        Map<CustomEnchant, Integer> leftEnchants =
+                enchantManager.getItemEnchants(left);
+        Map<CustomEnchant, Integer> rightEnchants =
+                enchantManager.getItemEnchants(right);
+
+        boolean changed = false;
+
         for (Map.Entry<CustomEnchant, Integer> entry : rightEnchants.entrySet()) {
             CustomEnchant enchant = entry.getKey();
             int rightLevel = entry.getValue();
@@ -84,33 +72,44 @@ public class AnvilListener implements Listener {
             combinedEnchants.put(enchant, newLevel);
         }
 
-        // Clear existing custom enchant lore
-        List<String> lore = meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
-        lore.removeIf(line -> {
-            for (CustomEnchant e : enchantManager.getEnchants()) {
-                if (line.startsWith(e.getDisplayName())) {
-                    return true;
-                }
+            // Ensure enchant is valid for this item
+            if (!enchant.canApply(result)) continue;
+
+            int leftLevel = leftEnchants.getOrDefault(enchant, 0);
+            int newLevel;
+
+            /*
+             * VANILLA COMBINATION LOGIC
+             *
+             * Same level → +1
+             * Different levels → higher wins
+             */
+            if (leftLevel == rightLevel) {
+                newLevel = leftLevel + 1;
+            } else {
+                newLevel = Math.max(leftLevel, rightLevel);
             }
             return false;
         });
 
-        // Apply all combined enchants with updated lore
-        for (Map.Entry<CustomEnchant, Integer> entry : combinedEnchants.entrySet()) {
-            CustomEnchant enchant = entry.getKey();
-            int level = entry.getValue();
-            
-            // Store in PDC
-            meta.getPersistentDataContainer()
-                    .set(enchant.getKey(), PersistentDataType.INTEGER, level);
-            
-            // Add to lore
-            lore.add(enchant.getDisplayName() + " " + EnchantUtil.toRoman(level));
+            // Cap at enchant max level
+            newLevel = Math.min(newLevel, enchant.getMaxLevel());
+
+            // Only apply if this is an upgrade
+            if (newLevel > leftLevel) {
+                EnchantUtil.applyEnchant(
+                        result,
+                        enchant,
+                        newLevel,
+                        enchantManager
+                );
+                changed = true;
+            }
         }
 
-        // Update result with new meta and lore
-        meta.setLore(lore);
-        result.setItemMeta(meta);
-        event.setResult(result);
+        // Only set output if something actually changed
+        if (changed) {
+            event.setResult(result);
+        }
     }
 }
