@@ -13,11 +13,13 @@ import java.util.Random;
 /**
  * Smelter's Delight Enchant
  *
- * - Converts mined ores into smelted ingots.
- * - Fortune-compatible: scales naturally with the Fortune level on the pickaxe.
- * - Pickaxe only.
- * - Table rarity: 10% chance at level 30.
- * - Internal level scaling: 1-3 for extra drops.
+ * Dev Notes:
+ * - Pickaxe-only enchant.
+ * - Converts mined ores into their smelted form (ingots, nuggets, quartz).
+ * - Works naturally with vanilla Fortune.
+ * - Table Rarity: 10% chance at level 30.
+ * - Internal level scaling 1-3: extra drop chance per level.
+ * - Modular: can be used together with other custom enchants like Vein Miner.
  */
 public class SmeltersDelightEnchant extends CustomEnchant {
 
@@ -43,17 +45,20 @@ public class SmeltersDelightEnchant extends CustomEnchant {
 
     @Override
     public void onHit(Player attacker, org.bukkit.entity.LivingEntity target, int level) {
-        // Not used in combat
+        // Combat not used
     }
 
     @Override
     public void onBlockBreak(Player player, Block block, int level) {
-        Material smelted = SMELT_MAP.get(block.getType());
-        if (smelted == null) return;
+        if (block == null) return;
 
+        Material smelted = SMELT_MAP.get(block.getType());
+        if (smelted == null) return; // Not smeltable
+
+        // Remove original block
         block.setType(Material.AIR);
 
-        // Version-safe Fortune: read vanilla Fortune level manually
+        // Determine Fortune level
         ItemStack tool = player.getInventory().getItemInMainHand();
         int fortuneLevel = 0;
         if (tool != null && tool.getEnchantments() != null) {
@@ -62,11 +67,13 @@ public class SmeltersDelightEnchant extends CustomEnchant {
             );
         }
 
-        int amount = 1 + RANDOM.nextInt(level + 1); // internal level scaling
+        // Determine drop amount: internal level scaling + fortune
+        int amount = 1 + RANDOM.nextInt(level); // base drops from enchant level
         for (int i = 0; i < fortuneLevel; i++) {
             if (RANDOM.nextDouble() < 0.33) amount++; // vanilla-style fortune
         }
 
+        // Drop items naturally
         block.getWorld().dropItemNaturally(block.getLocation(), new ItemStack(smelted, amount));
     }
 
@@ -77,15 +84,22 @@ public class SmeltersDelightEnchant extends CustomEnchant {
 
     @Override
     public int getTableLevel() {
+        // Only obtainable at level 30 table, 10% chance
         return RANDOM.nextDouble() <= 0.10 ? 1 + RANDOM.nextInt(getMaxLevel()) : 0;
     }
 
     @Override
     public void onTableEnchant(ItemStack item, int level) {
+        if (item == null || level <= 0) return;
         item.getItemMeta().getPersistentDataContainer()
                 .set(getKey(), org.bukkit.persistence.PersistentDataType.INTEGER, level);
     }
 
-    public Material getSmeltedBlock(Material dropType) {
+    /**
+     * Returns the smelted form of the given block type.
+     * Used by VeinMiner and other modular custom enchant interactions.
+     */
+    public Material getSmeltedBlock(Material type) {
+        return SMELT_MAP.get(type);
     }
 }
