@@ -5,6 +5,7 @@ import me.Anesthyl.enchants.Commands.LevelCommand;
 import me.Anesthyl.enchants.Commands.StatsCommand;
 import me.Anesthyl.enchants.enchantsystem.*;
 import me.Anesthyl.enchants.level.LevelManager;
+import me.Anesthyl.enchants.listeners.AnvilListener;
 import me.Anesthyl.enchants.listeners.BlockBreakListener;
 import me.Anesthyl.enchants.listeners.CombatListener;
 import me.Anesthyl.enchants.listeners.DonaldJumpListener;
@@ -74,6 +75,9 @@ public class Enchants extends JavaPlugin implements Listener {
         );
         getServer().getPluginManager().registerEvents(
                 new BlockBreakListener(enchantManager, levelManager), this
+        );
+        getServer().getPluginManager().registerEvents(
+                new AnvilListener(enchantManager), this
         );
         getServer().getPluginManager().registerEvents(
                 new me.Anesthyl.enchants.listeners.LavaWalkerListener(enchantManager), this
