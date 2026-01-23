@@ -121,7 +121,7 @@ public class EnchantUtil {
     /**
      * Converts integers to Roman numerals (1–10 safe).
      */
-    private static String toRoman(int number) {
+    public static String toRoman(int number) {
         return switch (number) {
             case 1 -> "I";
             case 2 -> "II";
