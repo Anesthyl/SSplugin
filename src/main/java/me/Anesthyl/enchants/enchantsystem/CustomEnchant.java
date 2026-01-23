@@ -1,5 +1,6 @@
 package me.Anesthyl.enchants.enchantsystem;
 
+import me.Anesthyl.enchants.stat.StatType;
 import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -80,4 +81,19 @@ public abstract class CustomEnchant {
      * Can this enchant be applied to this item?
      */
     public abstract boolean canApply(ItemStack item);
+
+    // ------------------------------
+    // Stat Bonuses
+    // ------------------------------
+
+    /**
+     * Get stat bonus for a given stat type and level.
+     * Override this to provide stat bonuses.
+     * Return 0.0 if this enchant doesn't affect this stat.
+     * 
+     * Example: +5% damage per level -> return 5.0 * level
+     */
+    public double getStatBonus(StatType type, int level) {
+        return 0.0;
+    }
 }
