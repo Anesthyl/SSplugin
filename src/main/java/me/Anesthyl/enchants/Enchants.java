@@ -1,25 +1,37 @@
 package me.Anesthyl.enchants;
 
 import me.Anesthyl.enchants.Commands.AddCustomEnchantCommand;
+import me.Anesthyl.enchants.Commands.LevelCommand;
+import me.Anesthyl.enchants.Commands.StatsCommand;
 import me.Anesthyl.enchants.enchantsystem.*;
+import me.Anesthyl.enchants.level.LevelManager;
 import me.Anesthyl.enchants.listeners.BlockBreakListener;
 import me.Anesthyl.enchants.listeners.CombatListener;
 import me.Anesthyl.enchants.listeners.EnchantTableListener;
+import me.Anesthyl.enchants.stat.StatManager;
+import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
 /**
  * Main plugin class for Enchants.
  *
  * Dev Notes:
- * - Initializes EnchantManager.
+ * - Initializes EnchantManager, StatManager, and LevelManager.
  * - Registers all custom enchants (combat, mining, movement, armor).
  * - Registers listeners for combat, block breaking, and enchant table events.
+ * - Tracks player levels and XP per activity.
  * - Registers a creative/test command: /addcustomenchant <enchant> [level]
  *   Allows manually adding any custom enchant for testing.
  */
-public class Enchants extends JavaPlugin {
+public class Enchants extends JavaPlugin implements Listener {
 
     private EnchantManager enchantManager;
+    private StatManager statManager;
+    private LevelManager levelManager;
 
     @Override
     public void onEnable() {
@@ -28,7 +40,13 @@ public class Enchants extends JavaPlugin {
         // 1️⃣ Initialize the EnchantManager
         enchantManager = new EnchantManager();
 
-        // 2️⃣ Register all custom enchants
+        // 2️⃣ Initialize the StatManager
+        statManager = new StatManager(this, enchantManager);
+
+        // 3️⃣ Initialize the LevelManager
+        levelManager = new LevelManager(this);
+
+        // 4️⃣ Register all custom enchants
         // Combat Enchants
         enchantManager.registerEnchant(new LifestealEnchant(this));           // Lifesteal
         enchantManager.registerEnchant(new ExplosiveStrikeEnchant(this));     // Explosive Strike
@@ -45,20 +63,29 @@ public class Enchants extends JavaPlugin {
         // Armor Enchants
         enchantManager.registerEnchant(new ShinyEnchant(this));               // Shiny (Gold-like behavior)
 
-        // 3️⃣ Register listeners
+        // 5️⃣ Register listeners (pass managers for XP and stats)
         getServer().getPluginManager().registerEvents(
-                new CombatListener(enchantManager), this
+                new CombatListener(enchantManager, levelManager), this
         );
         getServer().getPluginManager().registerEvents(
                 new EnchantTableListener(enchantManager), this
         );
         getServer().getPluginManager().registerEvents(
-                new BlockBreakListener(enchantManager), this
+                new BlockBreakListener(enchantManager, levelManager), this
         );
 
-        // 4️⃣ Register creative/test command for manual enchant application
+        // 6️⃣ Register player join/quit listener for StatManager & LevelManager cleanup
+        getServer().getPluginManager().registerEvents(this, this);
+
+        // 7️⃣ Register commands
         getCommand("addcustomenchant").setExecutor(
                 new AddCustomEnchantCommand(enchantManager)
+        );
+        getCommand("level").setExecutor(
+                new LevelCommand(levelManager)
+        );
+        getCommand("stats").setExecutor(
+                new StatsCommand(statManager)
         );
 
         getLogger().info("All custom enchants and commands registered!");
@@ -74,5 +101,41 @@ public class Enchants extends JavaPlugin {
      */
     public EnchantManager getEnchantManager() {
         return enchantManager;
+    }
+
+    /**
+     * Getter for StatManager
+     */
+    public StatManager getStatManager() {
+        return statManager;
+    }
+
+    /**
+     * Getter for LevelManager
+     */
+    public LevelManager getLevelManager() {
+        return levelManager;
+    }
+
+    // ==============================
+    // Player Join/Quit Event Hooks
+    // ==============================
+
+    @EventHandler
+    public void onPlayerJoin(PlayerJoinEvent event) {
+        Player player = event.getPlayer();
+        // Initialize stats for the player
+        statManager.recalculateStats(player);
+        // Load/initialize level data
+        levelManager.getPlayerLevel(player);
+    }
+
+    @EventHandler
+    public void onPlayerQuit(PlayerQuitEvent event) {
+        Player player = event.getPlayer();
+        // Clean up stats when player leaves
+        statManager.removePlayer(player);
+        // Save and clean up level data
+        levelManager.removePlayer(player);
     }
 }

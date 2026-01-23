@@ -8,3 +8,9 @@ commands:
   addcustomenchant:
     description: Apply a custom enchant to the item in-hand
     usage: /addcustomenchant <enchant> [level]
+  level:
+    description: View your current level and XP progress
+    usage: /level
+  stats:
+    description: View your current stat bonuses from enchants
+    usage: /stats
