@@ -1,53 +1,77 @@
 package me.Anesthyl.enchants;
 
+import me.Anesthyl.enchants.commands.AddCustomEnchantCommand;
 import me.Anesthyl.enchants.enchantsystem.*;
 import me.Anesthyl.enchants.listeners.BlockBreakListener;
 import me.Anesthyl.enchants.listeners.CombatListener;
 import me.Anesthyl.enchants.listeners.EnchantTableListener;
 import org.bukkit.plugin.java.JavaPlugin;
 
+/**
+ * Main plugin class for Enchants.
+ *
+ * Dev Notes:
+ * - Initializes EnchantManager.
+ * - Registers all custom enchants (combat, mining, movement, armor).
+ * - Registers listeners for combat, block breaking, and enchant table events.
+ * - Registers a creative/test command: /addcustomenchant <enchant> [level]
+ *   Allows manually adding any custom enchant for testing.
+ */
 public class Enchants extends JavaPlugin {
 
     private EnchantManager enchantManager;
 
     @Override
     public void onEnable() {
+        getLogger().info("Enchants Plugin Enabled");
 
-        // 1️⃣ Initialize enchant manager
+        // 1️⃣ Initialize the EnchantManager
         enchantManager = new EnchantManager();
 
         // 2️⃣ Register all custom enchants
-        enchantManager.registerEnchant(new LifestealEnchant(this));
-        enchantManager.registerEnchant(new ExplosiveStrikeEnchant(this));
-        enchantManager.registerEnchant(new SmeltersDelightEnchant(this));
+        // Combat Enchants
+        enchantManager.registerEnchant(new LifestealEnchant(this));           // Lifesteal
+        enchantManager.registerEnchant(new ExplosiveStrikeEnchant(this));     // Explosive Strike
 
-        // 3️⃣ Register combat listener (handles on-hit effects)
+        // Mining Enchants
+        enchantManager.registerEnchant(new SmeltersDelightEnchant(this));     // Smelter's Delight
+        enchantManager.registerEnchant(new VeinMinerEnchant(this));           // Vein Miner
+        enchantManager.registerEnchant(new ExcavatorEnchant(this));           // Excavator
+
+        // Movement Enchants
+        enchantManager.registerEnchant(new LavaWalkerEnchant(this));          // Lava Walker
+        enchantManager.registerEnchant(new DonaldJumpEnchant(this));          // Donald Jump
+
+        // Armor Enchants
+        enchantManager.registerEnchant(new ShinyEnchant(this));               // Shiny (Gold-like behavior)
+
+        // 3️⃣ Register listeners
         getServer().getPluginManager().registerEvents(
-                new CombatListener(enchantManager),
-                this
+                new CombatListener(enchantManager), this
+        );
+        getServer().getPluginManager().registerEvents(
+                new EnchantTableListener(enchantManager), this
+        );
+        getServer().getPluginManager().registerEvents(
+                new BlockBreakListener(enchantManager), this
         );
 
-        // 4️⃣ Register enchanting table listener (random table drops)
-        getServer().getPluginManager().registerEvents(
-                new EnchantTableListener(enchantManager),
-                this
+        // 4️⃣ Register creative/test command for manual enchant application
+        getCommand("addcustomenchant").setExecutor(
+                new AddCustomEnchantCommand(enchantManager)
         );
 
-        // 5️⃣ Register block break listener (for Smelter's Delight)
-        getServer().getPluginManager().registerEvents(
-                new BlockBreakListener(enchantManager),
-                this
-        );
-
-        getLogger().info("Enchants plugin enabled with all custom enchants!");
+        getLogger().info("All custom enchants and commands registered!");
     }
 
     @Override
     public void onDisable() {
-        getLogger().info("Enchants plugin disabled.");
+        getLogger().info("Enchants Plugin Disabled");
     }
 
-    // Optional getter for the manager if needed elsewhere
+    /**
+     * Getter for EnchantManager
+     */
     public EnchantManager getEnchantManager() {
         return enchantManager;
     }

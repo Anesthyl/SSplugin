@@ -3,3 +3,8 @@ version: 1.0
 main: me.Anesthyl.enchants.Enchants
 api-version: 1.21
 authors: [ Anesthyl & Ferocity ]
+
+commands:
+  addcustomenchant:
+    description: Apply a custom enchant to the item in-hand
+    usage: /addcustomenchant <enchant> [level]

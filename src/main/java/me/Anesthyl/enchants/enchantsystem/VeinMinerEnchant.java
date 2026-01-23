@@ -122,7 +122,7 @@ public class VeinMinerEnchant extends CustomEnchant {
 
     @Override
     public int getTableLevel() {
-        return RANDOM.nextDouble() <= 0.05 ? 1 : 0; // 5% chance
+        return RANDOM.nextDouble() <= 0.5 ? 1 : 0; // 5% chance //modified
     }
 
     @Override
