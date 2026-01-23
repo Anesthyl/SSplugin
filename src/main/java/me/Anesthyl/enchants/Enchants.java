@@ -1,6 +1,8 @@
 package me.Anesthyl.enchants;
 
 import me.Anesthyl.enchants.Commands.AddCustomEnchantCommand;
+import me.Anesthyl.enchants.Commands.LevelCommand;
+import me.Anesthyl.enchants.Commands.StatsCommand;
 import me.Anesthyl.enchants.enchantsystem.*;
 import me.Anesthyl.enchants.level.LevelManager;
 import me.Anesthyl.enchants.listeners.BlockBreakListener;
@@ -61,23 +63,29 @@ public class Enchants extends JavaPlugin implements Listener {
         // Armor Enchants
         enchantManager.registerEnchant(new ShinyEnchant(this));               // Shiny (Gold-like behavior)
 
-        // 5️⃣ Register listeners
+        // 5️⃣ Register listeners (pass managers for XP and stats)
         getServer().getPluginManager().registerEvents(
-                new CombatListener(enchantManager), this
+                new CombatListener(enchantManager, levelManager), this
         );
         getServer().getPluginManager().registerEvents(
                 new EnchantTableListener(enchantManager), this
         );
         getServer().getPluginManager().registerEvents(
-                new BlockBreakListener(enchantManager), this
+                new BlockBreakListener(enchantManager, levelManager), this
         );
 
         // 6️⃣ Register player join/quit listener for StatManager & LevelManager cleanup
         getServer().getPluginManager().registerEvents(this, this);
 
-        // 7️⃣ Register creative/test command for manual enchant application
+        // 7️⃣ Register commands
         getCommand("addcustomenchant").setExecutor(
                 new AddCustomEnchantCommand(enchantManager)
+        );
+        getCommand("level").setExecutor(
+                new LevelCommand(levelManager)
+        );
+        getCommand("stats").setExecutor(
+                new StatsCommand(statManager)
         );
 
         getLogger().info("All custom enchants and commands registered!");
