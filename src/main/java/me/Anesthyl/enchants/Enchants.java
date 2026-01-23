@@ -7,7 +7,9 @@ import me.Anesthyl.enchants.enchantsystem.*;
 import me.Anesthyl.enchants.level.LevelManager;
 import me.Anesthyl.enchants.listeners.BlockBreakListener;
 import me.Anesthyl.enchants.listeners.CombatListener;
+import me.Anesthyl.enchants.listeners.DonaldJumpListener;
 import me.Anesthyl.enchants.listeners.EnchantTableListener;
+import me.Anesthyl.enchants.listeners.ShinyListener;
 import me.Anesthyl.enchants.stat.StatManager;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -72,6 +74,15 @@ public class Enchants extends JavaPlugin implements Listener {
         );
         getServer().getPluginManager().registerEvents(
                 new BlockBreakListener(enchantManager, levelManager), this
+        );
+        getServer().getPluginManager().registerEvents(
+                new me.Anesthyl.enchants.listeners.LavaWalkerListener(enchantManager), this
+        );
+        getServer().getPluginManager().registerEvents(
+                new DonaldJumpListener(enchantManager), this
+        );
+        getServer().getPluginManager().registerEvents(
+                new ShinyListener(enchantManager), this
         );
 
         // 6️⃣ Register player join/quit listener for StatManager & LevelManager cleanup
