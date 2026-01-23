@@ -1,6 +1,6 @@
 package me.Anesthyl.enchants;
 
-import me.Anesthyl.enchants.commands.AddCustomEnchantCommand;
+import me.Anesthyl.enchants.Commands.AddCustomEnchantCommand;
 import me.Anesthyl.enchants.enchantsystem.*;
 import me.Anesthyl.enchants.listeners.BlockBreakListener;
 import me.Anesthyl.enchants.listeners.CombatListener;

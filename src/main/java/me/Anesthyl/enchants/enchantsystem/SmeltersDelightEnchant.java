@@ -15,21 +15,31 @@ import java.util.Random;
  *
  * Dev Notes:
  * - Pickaxe-only enchant.
- * - Converts mined ores into their smelted form (ingots, nuggets, quartz).
- * - Works naturally with vanilla Fortune.
- * - Table Rarity: 10% chance at level 30.
- * - Internal level scaling 1-3: extra drop chance per level.
- * - Modular: can be used together with other custom enchants like Vein Miner.
+ * - Converts ores directly into smelted results.
+ * - Fully overrides vanilla drops.
+ * - Works independently and alongside Vein Miner.
+ * - Fortune-compatible.
+ * - Supports deepslate ores.
  */
 public class SmeltersDelightEnchant extends CustomEnchant {
 
-    private static final Map<Material, Material> SMELT_MAP = new HashMap<>();
     private static final Random RANDOM = new Random();
+
+    /**
+     * Mapping of ore → smelted result
+     */
+    private static final Map<Material, Material> SMELT_MAP = new HashMap<>();
 
     static {
         SMELT_MAP.put(Material.IRON_ORE, Material.IRON_INGOT);
+        SMELT_MAP.put(Material.DEEPSLATE_IRON_ORE, Material.IRON_INGOT);
+
         SMELT_MAP.put(Material.GOLD_ORE, Material.GOLD_INGOT);
+        SMELT_MAP.put(Material.DEEPSLATE_GOLD_ORE, Material.GOLD_INGOT);
+
         SMELT_MAP.put(Material.COPPER_ORE, Material.COPPER_INGOT);
+        SMELT_MAP.put(Material.DEEPSLATE_COPPER_ORE, Material.COPPER_INGOT);
+
         SMELT_MAP.put(Material.NETHER_GOLD_ORE, Material.GOLD_NUGGET);
         SMELT_MAP.put(Material.NETHER_QUARTZ_ORE, Material.QUARTZ);
     }
@@ -38,44 +48,51 @@ public class SmeltersDelightEnchant extends CustomEnchant {
         super(plugin, "smelters_delight", "§eSmelter's Delight", 3);
     }
 
+    // --------------------------------------------------
+    // Core Logic
+    // --------------------------------------------------
+
     @Override
-    public boolean canApply(ItemStack item) {
-        return item != null && item.getType().toString().endsWith("_PICKAXE");
+    public void onBlockBreak(Player player, Block block, int level) {
+        Material smelted = getSmeltedResult(block.getType());
+        if (smelted == null) return;
+
+        ItemStack tool = player.getInventory().getItemInMainHand();
+
+        // Base amount scales with enchant level
+        int amount = 1 + RANDOM.nextInt(level);
+
+        // Fortune support
+        if (tool != null) {
+            int fortune = tool.getEnchantmentLevel(
+                    org.bukkit.enchantments.Enchantment.FORTUNE
+            );
+
+            for (int i = 0; i < fortune; i++) {
+                if (RANDOM.nextDouble() < 0.33) {
+                    amount++;
+                }
+            }
+        }
+
+        // Drop smelted result ONLY
+        block.getWorld().dropItemNaturally(
+                block.getLocation(),
+                new ItemStack(smelted, amount)
+        );
+
+        // Remove block manually to prevent vanilla drops
+        block.setType(Material.AIR);
     }
 
     @Override
     public void onHit(Player attacker, org.bukkit.entity.LivingEntity target, int level) {
-        // Combat not used
+        // Not used
     }
 
-    @Override
-    public void onBlockBreak(Player player, Block block, int level) {
-        if (block == null) return;
-
-        Material smelted = SMELT_MAP.get(block.getType());
-        if (smelted == null) return; // Not smeltable
-
-        // Remove original block
-        block.setType(Material.AIR);
-
-        // Determine Fortune level
-        ItemStack tool = player.getInventory().getItemInMainHand();
-        int fortuneLevel = 0;
-        if (tool != null && tool.getEnchantments() != null) {
-            fortuneLevel = tool.getEnchantments().getOrDefault(
-                    org.bukkit.enchantments.Enchantment.getByName("FORTUNE"), 0
-            );
-        }
-
-        // Determine drop amount: internal level scaling + fortune
-        int amount = 1 + RANDOM.nextInt(level); // base drops from enchant level
-        for (int i = 0; i < fortuneLevel; i++) {
-            if (RANDOM.nextDouble() < 0.33) amount++; // vanilla-style fortune
-        }
-
-        // Drop items naturally
-        block.getWorld().dropItemNaturally(block.getLocation(), new ItemStack(smelted, amount));
-    }
+    // --------------------------------------------------
+    // Table Logic
+    // --------------------------------------------------
 
     @Override
     public boolean canAppearOnTable() {
@@ -84,22 +101,38 @@ public class SmeltersDelightEnchant extends CustomEnchant {
 
     @Override
     public int getTableLevel() {
-        // Only obtainable at level 30 table, 10% chance
-        return RANDOM.nextDouble() <= 0.10 ? 1 + RANDOM.nextInt(getMaxLevel()) : 0;
+        // Level 30 table equivalent, 10% chance
+        return RANDOM.nextDouble() <= 0.10
+                ? 1 + RANDOM.nextInt(getMaxLevel())
+                : 0;
     }
 
     @Override
     public void onTableEnchant(ItemStack item, int level) {
         if (item == null || level <= 0) return;
+
         item.getItemMeta().getPersistentDataContainer()
-                .set(getKey(), org.bukkit.persistence.PersistentDataType.INTEGER, level);
+                .set(getKey(),
+                        org.bukkit.persistence.PersistentDataType.INTEGER,
+                        level);
     }
 
+    // --------------------------------------------------
+    // Utility / Integration
+    // --------------------------------------------------
+
     /**
-     * Returns the smelted form of the given block type.
-     * Used by VeinMiner and other modular custom enchant interactions.
+     * Companion method for Vein Miner and other enchants.
+     *
+     * @param type Ore material
+     * @return Smelted result or null if not supported
      */
-    public Material getSmeltedBlock(Material type) {
+    public Material getSmeltedResult(Material type) {
         return SMELT_MAP.get(type);
+    }
+
+    @Override
+    public boolean canApply(ItemStack item) {
+        return item != null && item.getType().toString().endsWith("_PICKAXE");
     }
 }
