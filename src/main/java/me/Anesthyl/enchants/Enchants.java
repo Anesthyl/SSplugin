@@ -2,6 +2,7 @@ package me.Anesthyl.enchants;
 
 import me.Anesthyl.enchants.Commands.AddCustomEnchantCommand;
 import me.Anesthyl.enchants.enchantsystem.*;
+import me.Anesthyl.enchants.level.LevelManager;
 import me.Anesthyl.enchants.listeners.BlockBreakListener;
 import me.Anesthyl.enchants.listeners.CombatListener;
 import me.Anesthyl.enchants.listeners.EnchantTableListener;
@@ -17,9 +18,10 @@ import org.bukkit.plugin.java.JavaPlugin;
  * Main plugin class for Enchants.
  *
  * Dev Notes:
- * - Initializes EnchantManager and StatManager.
+ * - Initializes EnchantManager, StatManager, and LevelManager.
  * - Registers all custom enchants (combat, mining, movement, armor).
  * - Registers listeners for combat, block breaking, and enchant table events.
+ * - Tracks player levels and XP per activity.
  * - Registers a creative/test command: /addcustomenchant <enchant> [level]
  *   Allows manually adding any custom enchant for testing.
  */
@@ -27,6 +29,7 @@ public class Enchants extends JavaPlugin implements Listener {
 
     private EnchantManager enchantManager;
     private StatManager statManager;
+    private LevelManager levelManager;
 
     @Override
     public void onEnable() {
@@ -38,7 +41,10 @@ public class Enchants extends JavaPlugin implements Listener {
         // 2️⃣ Initialize the StatManager
         statManager = new StatManager(this, enchantManager);
 
-        // 3️⃣ Register all custom enchants
+        // 3️⃣ Initialize the LevelManager
+        levelManager = new LevelManager(this);
+
+        // 4️⃣ Register all custom enchants
         // Combat Enchants
         enchantManager.registerEnchant(new LifestealEnchant(this));           // Lifesteal
         enchantManager.registerEnchant(new ExplosiveStrikeEnchant(this));     // Explosive Strike
@@ -55,7 +61,7 @@ public class Enchants extends JavaPlugin implements Listener {
         // Armor Enchants
         enchantManager.registerEnchant(new ShinyEnchant(this));               // Shiny (Gold-like behavior)
 
-        // 4️⃣ Register listeners
+        // 5️⃣ Register listeners
         getServer().getPluginManager().registerEvents(
                 new CombatListener(enchantManager), this
         );
@@ -66,10 +72,10 @@ public class Enchants extends JavaPlugin implements Listener {
                 new BlockBreakListener(enchantManager), this
         );
 
-        // 5️⃣ Register player join/quit listener for StatManager cleanup
+        // 6️⃣ Register player join/quit listener for StatManager & LevelManager cleanup
         getServer().getPluginManager().registerEvents(this, this);
 
-        // 6️⃣ Register creative/test command for manual enchant application
+        // 7️⃣ Register creative/test command for manual enchant application
         getCommand("addcustomenchant").setExecutor(
                 new AddCustomEnchantCommand(enchantManager)
         );
@@ -96,8 +102,15 @@ public class Enchants extends JavaPlugin implements Listener {
         return statManager;
     }
 
+    /**
+     * Getter for LevelManager
+     */
+    public LevelManager getLevelManager() {
+        return levelManager;
+    }
+
     // ==============================
-    // Stat Manager Event Hooks
+    // Player Join/Quit Event Hooks
     // ==============================
 
     @EventHandler
@@ -105,6 +118,8 @@ public class Enchants extends JavaPlugin implements Listener {
         Player player = event.getPlayer();
         // Initialize stats for the player
         statManager.recalculateStats(player);
+        // Load/initialize level data
+        levelManager.getPlayerLevel(player);
     }
 
     @EventHandler
@@ -112,4 +127,7 @@ public class Enchants extends JavaPlugin implements Listener {
         Player player = event.getPlayer();
         // Clean up stats when player leaves
         statManager.removePlayer(player);
-    }}
+        // Save and clean up level data
+        levelManager.removePlayer(player);
+    }
+}
