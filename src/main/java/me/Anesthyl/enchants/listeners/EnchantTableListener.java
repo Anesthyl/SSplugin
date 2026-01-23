@@ -8,20 +8,24 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.enchantment.EnchantItemEvent;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+
 /**
- * Listener for enchanting table events.
+ * EnchantTableListener
  *
  * Dev Notes:
- * - This listener handles applying custom enchants to items when using an enchanting table.
- * - Supports both single-level and multi-level enchants.
- * - Honors each enchant's rarity logic via getTableLevel().
- * - Prevents overwriting other custom enchants on the same item.
- * - Automatically stores the level in PersistentDataContainer and updates lore via EnchantUtil.
- * - Ready for future enchants without modification.
+ * - Mimics vanilla enchanting behavior.
+ * - Rolls all eligible enchants but applies ONLY ONE.
+ * - Respects enchant rarity via getTableLevel().
+ * - Prevents multiple custom enchants per table use.
+ * - Compatibility rules enforced via EnchantUtil.
  */
 public class EnchantTableListener implements Listener {
 
     private final EnchantManager enchantManager;
+    private final Random random = new Random();
 
     public EnchantTableListener(EnchantManager enchantManager) {
         this.enchantManager = enchantManager;
@@ -31,19 +35,43 @@ public class EnchantTableListener implements Listener {
     public void onEnchant(EnchantItemEvent event) {
         ItemStack item = event.getItem();
 
+        List<EnchantRoll> rolled = new ArrayList<>();
+
+        // Roll all possible enchants
         for (CustomEnchant enchant : enchantManager.getEnchants()) {
-
-            // Skip if the enchant cannot be applied to this item type
             if (!enchant.canApply(item)) continue;
+            if (!enchant.canAppearOnTable()) continue;
 
-            // Determine the level to apply using the enchant's own table logic
             int level = enchant.getTableLevel();
+            if (level > 0) {
+                rolled.add(new EnchantRoll(enchant, level));
+            }
+        }
 
-            // Skip if the enchant does not appear this time
-            if (level <= 0) continue;
+        // Nothing rolled → do nothing
+        if (rolled.isEmpty()) return;
 
-            // Apply the enchant to the item without overwriting other enchants
-            EnchantUtil.applyEnchant(item, enchant, level);
+        // Pick ONE enchant result
+        EnchantRoll chosen = rolled.get(random.nextInt(rolled.size()));
+
+        EnchantUtil.applyEnchant(
+                item,
+                chosen.enchant,
+                chosen.level,
+                enchantManager
+        );
+    }
+
+    /**
+     * Simple record to store a rolled enchant + level
+     */
+    private static class EnchantRoll {
+        final CustomEnchant enchant;
+        final int level;
+
+        EnchantRoll(CustomEnchant enchant, int level) {
+            this.enchant = enchant;
+            this.level = level;
         }
     }
 }

@@ -13,12 +13,13 @@ import org.bukkit.inventory.ItemStack;
 import java.util.Locale;
 
 /**
- * Command: /addcustomenchant <enchant> [level]
+ * /addcustomenchant <enchant> [level]
  *
  * Dev Notes:
- * - Applies any registered custom enchant to the item in-hand.
- * - Optional level parameter; defaults to 1.
- * - Only usable by players.
+ * - OP-only command.
+ * - Applies any registered custom enchant.
+ * - Level defaults to 1 and is capped at enchant max.
+ * - All compatibility rules are enforced via EnchantUtil.
  */
 public class AddCustomEnchantCommand implements CommandExecutor {
 
@@ -30,8 +31,14 @@ public class AddCustomEnchantCommand implements CommandExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+
         if (!(sender instanceof Player player)) {
             sender.sendMessage(ChatColor.RED + "Only players can use this command.");
+            return true;
+        }
+
+        if (!player.isOp()) {
+            player.sendMessage(ChatColor.RED + "You must be an operator to use this command.");
             return true;
         }
 
@@ -47,33 +54,41 @@ public class AddCustomEnchantCommand implements CommandExecutor {
             try {
                 level = Integer.parseInt(args[1]);
             } catch (NumberFormatException e) {
-                player.sendMessage(ChatColor.RED + "Invalid level, must be a number.");
+                player.sendMessage(ChatColor.RED + "Level must be a number.");
                 return true;
             }
         }
 
         ItemStack item = player.getInventory().getItemInMainHand();
         if (item == null || item.getType().isAir()) {
-            player.sendMessage(ChatColor.RED + "You must be holding an item in your main hand.");
+            player.sendMessage(ChatColor.RED + "You must be holding an item.");
             return true;
         }
 
-        CustomEnchant enchant = enchantManager.getEnchants().stream()
-                .filter(e -> e.getKey().getKey().equalsIgnoreCase(enchantName))
-                .findFirst().orElse(null);
-
+        CustomEnchant enchant = enchantManager.getEnchant(enchantName).orElse(null);
         if (enchant == null) {
-            player.sendMessage(ChatColor.RED + "Enchant not found: " + enchantName);
+            player.sendMessage(ChatColor.RED + "Unknown enchant: " + enchantName);
             return true;
         }
 
         if (!enchant.canApply(item)) {
-            player.sendMessage(ChatColor.RED + "This enchant cannot be applied to this item.");
+            player.sendMessage(ChatColor.RED + "That enchant cannot be applied to this item.");
             return true;
         }
 
-        EnchantUtil.applyEnchant(item, enchant, level);
-        player.sendMessage(ChatColor.GREEN + "Applied " + enchant.getDisplayName() + " " + level + " to your item!");
+        // Cap level safely
+        level = Math.min(level, enchant.getMaxLevel());
+
+        EnchantUtil.applyEnchant(
+                item,
+                enchant,
+                level,
+                enchantManager
+        );
+
+        player.sendMessage(ChatColor.GREEN + "Applied "
+                + enchant.getDisplayName() + " "
+                + level + "!");
         return true;
     }
 }

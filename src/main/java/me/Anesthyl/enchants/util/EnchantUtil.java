@@ -1,6 +1,9 @@
 package me.Anesthyl.enchants.util;
 
 import me.Anesthyl.enchants.enchantsystem.CustomEnchant;
+import me.Anesthyl.enchants.enchantsystem.EnchantManager;
+import me.Anesthyl.enchants.enchantsystem.ExcavatorEnchant;
+import me.Anesthyl.enchants.enchantsystem.VeinMinerEnchant;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
@@ -12,52 +15,92 @@ import java.util.Map;
 /**
  * EnchantUtil
  *
- * Utility class for handling custom enchantments.
- *
  * Dev Notes:
- * - Stores enchant levels in PersistentDataContainer (version-safe).
- * - Updates item lore to reflect current enchant levels.
- * - Handles anvil combining by replacing existing levels of the same enchant.
- * - Preserves other custom enchants and vanilla enchantments.
+ * - Central utility for applying and displaying custom enchants.
+ * - Enforces global compatibility rules (Vein Miner ↔ Excavator).
+ * - Responsible for:
+ *   - Writing enchant data to PDC
+ *   - Updating item lore to reflect current enchants
+ * - Used by:
+ *   - Commands
+ *   - Enchanting table
+ *   - Anvils
  */
 public class EnchantUtil {
 
     /**
-     * Apply a custom enchant to an item.
-     *
-     * - If the item already has the enchant, it replaces the level (useful for anvil stacking).
-     * - Updates lore to show the enchant name and Roman numeral level.
-     *
-     * @param item    ItemStack to apply enchant to
-     * @param enchant CustomEnchant to apply
-     * @param level   Level of enchant
+     * Applies a custom enchant to an item while enforcing rules
+     * and updating lore.
      */
-    public static void applyEnchant(ItemStack item, CustomEnchant enchant, int level) {
+    public static void applyEnchant(
+            ItemStack item,
+            CustomEnchant enchant,
+            int level,
+            EnchantManager enchantManager
+    ) {
         if (item == null || enchant == null || level <= 0) return;
 
         ItemMeta meta = item.getItemMeta();
         if (meta == null) return;
 
-        // PersistentDataContainer: store the level of this enchant
-        meta.getPersistentDataContainer().set(enchant.getKey(), PersistentDataType.INTEGER, level);
+        Map<CustomEnchant, Integer> existing =
+                enchantManager.getItemEnchants(item);
 
-        // Update lore safely
-        List<String> lore = meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
-        boolean replaced = false;
-
-        // Check if this enchant already exists in lore
-        for (int i = 0; i < lore.size(); i++) {
-            String line = lore.get(i);
-            if (line.startsWith(enchant.getDisplayName())) {
-                lore.set(i, enchant.getDisplayName() + " " + toRoman(level));
-                replaced = true;
-                break;
+        /*
+         * MUTUAL EXCLUSIVITY RULES
+         */
+        if (enchant instanceof VeinMinerEnchant) {
+            for (CustomEnchant e : existing.keySet()) {
+                if (e instanceof ExcavatorEnchant) return;
             }
         }
 
-        // If not already in lore, add it
-        if (!replaced) {
-            lore.add(enchant.getDisplayName() + " " + toRoman(level));
+        if (enchant instanceof ExcavatorEnchant) {
+            for (CustomEnchant e : existing.keySet()) {
+                if (e instanceof VeinMinerEnchant) return;
+            }
+        }
+
+        // Apply enchant level to PDC
+        meta.getPersistentDataContainer()
+                .set(enchant.getKey(), PersistentDataType.INTEGER, level);
+
+        item.setItemMeta(meta);
+
+        // Rebuild lore after applying enchant
+        updateLore(item, enchantManager);
+    }
+
+    /**
+     * Rebuilds custom enchant lore from PersistentDataContainer.
+     *
+     * Dev Notes:
+     * - Removes all old custom-enchant lore lines
+     * - Re-adds current enchant list cleanly
+     * - Does NOT touch vanilla enchant lore
+     */
+    public static void updateLore(ItemStack item, EnchantManager enchantManager) {
+        if (item == null || !item.hasItemMeta()) return;
+
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) return;
+
+        List<String> lore = meta.hasLore()
+                ? new ArrayList<>(meta.getLore())
+                : new ArrayList<>();
+
+        // Remove existing custom enchant lore lines
+        lore.removeIf(line -> line.startsWith("§"));
+
+        // Re-add current custom enchants
+        Map<CustomEnchant, Integer> enchants =
+                enchantManager.getItemEnchants(item);
+
+        for (Map.Entry<CustomEnchant, Integer> entry : enchants.entrySet()) {
+            CustomEnchant enchant = entry.getKey();
+            int level = entry.getValue();
+
+            lore.add(formatEnchantLine(enchant, level));
         }
 
         meta.setLore(lore);
@@ -65,80 +108,18 @@ public class EnchantUtil {
     }
 
     /**
-     * Get the level of a specific custom enchant on an item.
+     * Formats enchant display text.
      *
-     * @param item    ItemStack to check
-     * @param enchant CustomEnchant to check
-     * @return Level, or 0 if not present
+     * Example:
+     * §bVein Miner II
      */
-    public static int getEnchantLevel(ItemStack item, CustomEnchant enchant) {
-        if (item == null || enchant == null || !item.hasItemMeta()) return 0;
-
-        Integer level = item.getItemMeta().getPersistentDataContainer()
-                .get(enchant.getKey(), PersistentDataType.INTEGER);
-        return level == null ? 0 : level;
+    private static String formatEnchantLine(CustomEnchant enchant, int level) {
+        String roman = toRoman(level);
+        return enchant.getDisplayName() + " " + roman;
     }
 
     /**
-     * Check if an item has a specific custom enchant.
-     *
-     * @param item    ItemStack to check
-     * @param enchant CustomEnchant to check
-     * @return true if present
-     */
-    public static boolean hasEnchant(ItemStack item, CustomEnchant enchant) {
-        return getEnchantLevel(item, enchant) > 0;
-    }
-
-    /**
-     * Remove a custom enchant from an item.
-     * Updates lore and PersistentDataContainer.
-     *
-     * @param item    ItemStack to modify
-     * @param enchant CustomEnchant to remove
-     */
-    public static void removeEnchant(ItemStack item, CustomEnchant enchant) {
-        if (item == null || enchant == null || !item.hasItemMeta()) return;
-
-        ItemMeta meta = item.getItemMeta();
-        if (meta == null) return;
-
-        meta.getPersistentDataContainer().remove(enchant.getKey());
-
-        if (meta.hasLore()) {
-            List<String> lore = new ArrayList<>(meta.getLore());
-            lore.removeIf(line -> line.startsWith(enchant.getDisplayName()));
-            meta.setLore(lore);
-        }
-
-        item.setItemMeta(meta);
-    }
-
-    /**
-     * Get all custom enchants and their levels from an item.
-     *
-     * @param item                ItemStack to check
-     * @param registeredEnchants  Map of all registered enchants (from EnchantManager)
-     * @return Map of CustomEnchant -> level
-     */
-    public static Map<CustomEnchant, Integer> getEnchants(ItemStack item, Map<String, CustomEnchant> registeredEnchants) {
-        Map<CustomEnchant, Integer> found = new java.util.HashMap<>();
-        if (item == null || !item.hasItemMeta()) return found;
-
-        ItemMeta meta = item.getItemMeta();
-        registeredEnchants.forEach((key, enchant) -> {
-            Integer level = meta.getPersistentDataContainer().get(enchant.getKey(), PersistentDataType.INTEGER);
-            if (level != null) {
-                found.put(enchant, level);
-            }
-        });
-
-        return found;
-    }
-
-    /**
-     * Converts an integer level to a Roman numeral for lore display.
-     * Supports levels I-V, defaults to numeric value beyond V.
+     * Converts integers to Roman numerals (1–10 safe).
      */
     private static String toRoman(int number) {
         return switch (number) {
@@ -147,6 +128,11 @@ public class EnchantUtil {
             case 3 -> "III";
             case 4 -> "IV";
             case 5 -> "V";
+            case 6 -> "VI";
+            case 7 -> "VII";
+            case 8 -> "VIII";
+            case 9 -> "IX";
+            case 10 -> "X";
             default -> String.valueOf(number);
         };
     }
