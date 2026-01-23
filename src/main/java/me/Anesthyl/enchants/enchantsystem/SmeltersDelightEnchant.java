@@ -85,4 +85,7 @@ public class SmeltersDelightEnchant extends CustomEnchant {
         item.getItemMeta().getPersistentDataContainer()
                 .set(getKey(), org.bukkit.persistence.PersistentDataType.INTEGER, level);
     }
+
+    public Material getSmeltedBlock(Material dropType) {
+    }
 }
