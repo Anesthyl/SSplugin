@@ -2,6 +2,7 @@ package me.Anesthyl.enchants.listeners;
 
 import me.Anesthyl.enchants.enchantsystem.CustomEnchant;
 import me.Anesthyl.enchants.enchantsystem.EnchantManager;
+import me.Anesthyl.enchants.util.EnchantUtil;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.PrepareAnvilEvent;
@@ -9,6 +10,9 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -45,33 +49,67 @@ public class AnvilListener implements Listener {
         // Null check to prevent errors
         if (left == null || right == null) return;
 
+        // Get enchants from both items
+        Map<CustomEnchant, Integer> leftEnchants = enchantManager.getItemEnchants(left);
+        Map<CustomEnchant, Integer> rightEnchants = enchantManager.getItemEnchants(right);
+        
+        // Skip if right item has no custom enchants
+        if (rightEnchants.isEmpty()) return;
+
         // Clone left item to create a result
         ItemStack result = left.clone();
         ItemMeta meta = result.getItemMeta();
         if (meta == null) return;
 
-        // Iterate over all custom enchants on the right item
-        for (Map.Entry<CustomEnchant, Integer> entry : enchantManager.getItemEnchants(right).entrySet()) {
+        // Combine all enchants from both items
+        Map<CustomEnchant, Integer> combinedEnchants = new HashMap<>(leftEnchants);
+        
+        for (Map.Entry<CustomEnchant, Integer> entry : rightEnchants.entrySet()) {
             CustomEnchant enchant = entry.getKey();
             int rightLevel = entry.getValue();
-
-            // Check if left item already has this enchant
-            Integer currentLevel = meta.getPersistentDataContainer()
-                    .get(enchant.getKey(), PersistentDataType.INTEGER);
-
-            int newLevel = rightLevel;
-
-            if (currentLevel != null) {
-                // Combine levels, capped at the max allowed level
-                newLevel = Math.min(enchant.getMaxLevel(), currentLevel + rightLevel);
+            
+            // Get existing level from left item (if any)
+            int leftLevel = combinedEnchants.getOrDefault(enchant, 0);
+            
+            // Combine levels: if same enchant and same level, increase by 1 (like vanilla)
+            // Otherwise, take the higher level
+            int newLevel;
+            if (leftLevel == rightLevel && leftLevel > 0) {
+                // Same enchant, same level -> increase by 1 (vanilla behavior)
+                newLevel = Math.min(enchant.getMaxLevel(), leftLevel + 1);
+            } else {
+                // Different levels -> take the higher one
+                newLevel = Math.max(leftLevel, rightLevel);
             }
-
-            // Apply new level to the result item
-            meta.getPersistentDataContainer()
-                    .set(enchant.getKey(), PersistentDataType.INTEGER, newLevel);
+            combinedEnchants.put(enchant, newLevel);
         }
 
-        // Update result with new meta and set it as the anvil output
+        // Clear existing custom enchant lore
+        List<String> lore = meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
+        lore.removeIf(line -> {
+            for (CustomEnchant e : enchantManager.getEnchants()) {
+                if (line.startsWith(e.getDisplayName())) {
+                    return true;
+                }
+            }
+            return false;
+        });
+
+        // Apply all combined enchants with updated lore
+        for (Map.Entry<CustomEnchant, Integer> entry : combinedEnchants.entrySet()) {
+            CustomEnchant enchant = entry.getKey();
+            int level = entry.getValue();
+            
+            // Store in PDC
+            meta.getPersistentDataContainer()
+                    .set(enchant.getKey(), PersistentDataType.INTEGER, level);
+            
+            // Add to lore
+            lore.add(enchant.getDisplayName() + " " + EnchantUtil.toRoman(level));
+        }
+
+        // Update result with new meta and lore
+        meta.setLore(lore);
         result.setItemMeta(meta);
         event.setResult(result);
     }

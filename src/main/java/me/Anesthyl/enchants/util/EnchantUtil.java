@@ -140,7 +140,7 @@ public class EnchantUtil {
      * Converts an integer level to a Roman numeral for lore display.
      * Supports levels I-V, defaults to numeric value beyond V.
      */
-    private static String toRoman(int number) {
+    public static String toRoman(int number) {
         return switch (number) {
             case 1 -> "I";
             case 2 -> "II";
