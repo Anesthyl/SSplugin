@@ -176,8 +176,8 @@ public class LevelManager {
         addXP(player, SkillType.WOOD_CUTTING, SkillType.WOOD_CUTTING.getBaseXpPerAction(), multiplier);
     }
     
-    public void addCombatXP(Player player, int amount) {
-        addXP(player, SkillType.COMBAT, amount);
+    public void addBruceLeeXP(Player player, int amount) {
+        addXP(player, SkillType.BRUCE_LEE, amount);
     }
     
     public void addDuelistXP(Player player, int amount) {
@@ -231,12 +231,12 @@ public class LevelManager {
     
     @Deprecated
     public void addMobKillXP(Player player) {
-        addCombatXP(player, SkillType.COMBAT.getBaseXpPerAction());
+        addBruceLeeXP(player, SkillType.BRUCE_LEE.getBaseXpPerAction());
     }
     
     @Deprecated
     public void addPlayerKillXP(Player player) {
-        addCombatXP(player, SkillType.COMBAT.getBaseXpPerAction() * 5);
+        addBruceLeeXP(player, SkillType.BRUCE_LEE.getBaseXpPerAction() * 5);
     }
     
     @Deprecated

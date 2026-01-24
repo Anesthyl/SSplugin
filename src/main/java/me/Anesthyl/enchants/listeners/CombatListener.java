@@ -47,19 +47,19 @@ public class CombatListener implements Listener {
         
         // Determine XP amounts based on whether it's a player or mob kill
         int baseXP = event.getEntity() instanceof Player ? 
-            SkillType.COMBAT.getBaseXpPerAction() * 5 : 
-            SkillType.COMBAT.getBaseXpPerAction();
+            SkillType.BRUCE_LEE.getBaseXpPerAction() * 5 : 
+            SkillType.BRUCE_LEE.getBaseXpPerAction();
         
-        // Award general Combat XP
-        levelManager.addCombatXP(killer, baseXP);
-        
-        // Award weapon-specific XP
+        // Award weapon-specific XP based on what was used
         if (weaponType.toString().contains("SWORD")) {
             // Duelist - Swordsmanship
             levelManager.addDuelistXP(killer, SkillType.DUELIST.getBaseXpPerAction());
         } else if (weaponType.toString().contains("AXE")) {
             // Executioner - Axemanship
             levelManager.addExecutionerXP(killer, SkillType.EXECUTIONER.getBaseXpPerAction());
+        } else if (weaponType.isAir()) {
+            // Bruce-Lee - Hand-to-hand combat (fists only)
+            levelManager.addBruceLeeXP(killer, baseXP);
         }
     }
     

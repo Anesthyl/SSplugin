@@ -7,7 +7,7 @@ package me.Anesthyl.enchants.level;
 public enum SkillType {
     
     MINING("Mining", "⛏", "Break ores and stone", 10),
-    COMBAT("Combat", "⚔", "Deal damage to entities", 15),
+    BRUCE_LEE("Bruce-Lee", "👊", "Hand-to-hand combat mastery", 15),
     TOUGHNESS("Toughness", "❤", "Take damage without dying", 5),
     AGILITY("Agility", "⚡", "Sprint and jump", 3),
     ENCHANTING("Enchanting", "✨", "Enchant items", 25),
