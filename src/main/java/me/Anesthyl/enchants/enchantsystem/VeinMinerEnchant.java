@@ -26,6 +26,7 @@ public class VeinMinerEnchant extends CustomEnchant {
     private static final int VEIN_CAP = 64;
 
     private static final Set<Material> ORES = Set.of(
+            Material.COAL_ORE, Material.DEEPSLATE_COAL_ORE,
             Material.IRON_ORE, Material.DEEPSLATE_IRON_ORE,
             Material.GOLD_ORE, Material.DEEPSLATE_GOLD_ORE,
             Material.COPPER_ORE, Material.DEEPSLATE_COPPER_ORE,
@@ -108,6 +109,7 @@ public class VeinMinerEnchant extends CustomEnchant {
      */
     private Material getOreDrop(Material ore) {
         return switch (ore) {
+            case COAL_ORE, DEEPSLATE_COAL_ORE -> Material.COAL;
             case IRON_ORE, DEEPSLATE_IRON_ORE -> Material.RAW_IRON;
             case GOLD_ORE, DEEPSLATE_GOLD_ORE -> Material.RAW_GOLD;
             case COPPER_ORE, DEEPSLATE_COPPER_ORE -> Material.RAW_COPPER;

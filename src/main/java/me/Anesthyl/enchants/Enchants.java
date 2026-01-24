@@ -2,13 +2,18 @@ package me.Anesthyl.enchants;
 
 import me.Anesthyl.enchants.Commands.AddCustomEnchantCommand;
 import me.Anesthyl.enchants.Commands.BackpackCommand;
+import me.Anesthyl.enchants.Commands.DelWarpCommand;
+import me.Anesthyl.enchants.Commands.GuidebookCommand;
 import me.Anesthyl.enchants.Commands.HealCommand;
 import me.Anesthyl.enchants.Commands.LevelCommand;
+import me.Anesthyl.enchants.Commands.SetWarpCommand;
 import me.Anesthyl.enchants.Commands.StatsCommand;
+import me.Anesthyl.enchants.Commands.WarpCommand;
 import me.Anesthyl.enchants.achievements.AchievementManager;
 import me.Anesthyl.enchants.backpack.BackpackListener;
 import me.Anesthyl.enchants.backpack.BackpackManager;
 import me.Anesthyl.enchants.enchantsystem.*;
+import me.Anesthyl.enchants.guidebook.GuidebookListener;
 import me.Anesthyl.enchants.level.LevelManager;
 import me.Anesthyl.enchants.listeners.AnvilListener;
 import me.Anesthyl.enchants.listeners.BlockBreakListener;
@@ -16,8 +21,18 @@ import me.Anesthyl.enchants.listeners.CombatListener;
 import me.Anesthyl.enchants.listeners.DonaldJumpListener;
 import me.Anesthyl.enchants.listeners.EnchantTableListener;
 import me.Anesthyl.enchants.listeners.GrindstoneListener;
+import me.Anesthyl.enchants.listeners.ManaBrewingListener;
+import me.Anesthyl.enchants.listeners.ManaPotionListener;
+import me.Anesthyl.enchants.listeners.RecipeDiscoveryListener;
 import me.Anesthyl.enchants.listeners.ShinyListener;
+import me.Anesthyl.enchants.spell.ManaManager;
+import me.Anesthyl.enchants.spell.SpellCastListener;
+import me.Anesthyl.enchants.spell.SpellGUI;
+import me.Anesthyl.enchants.spell.SpellManager;
+import me.Anesthyl.enchants.spell.SpellRecipeListener;
+import me.Anesthyl.enchants.spell.SpellWorkstationListener;
 import me.Anesthyl.enchants.stat.StatManager;
+import me.Anesthyl.enchants.warp.WarpManager;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -43,6 +58,10 @@ public class Enchants extends JavaPlugin implements Listener {
     private LevelManager levelManager;
     private BackpackManager backpackManager;
     private AchievementManager achievementManager;
+    private SpellManager spellManager;
+    private SpellGUI spellGUI;
+    private ManaManager manaManager;
+    private WarpManager warpManager;
 
     @Override
     public void onEnable() {
@@ -63,7 +82,16 @@ public class Enchants extends JavaPlugin implements Listener {
         // 5️⃣ Initialize the AchievementManager
         achievementManager = new AchievementManager(this, enchantManager);
 
-        // 6️⃣ Register all custom enchants
+        // 6️⃣ Initialize the Spell System
+        spellManager = new SpellManager(this);
+        manaManager = new ManaManager(this);
+        spellGUI = new SpellGUI(spellManager, levelManager);
+        new SpellRecipeListener(this, spellManager);
+
+        // 6.5️⃣ Initialize the Warp System
+        warpManager = new WarpManager(this);
+
+        // 7️⃣ Register all custom enchants
         // Combat Enchants
         enchantManager.registerEnchant(new LifestealEnchant(this));           // Lifesteal
         enchantManager.registerEnchant(new ExplosiveStrikeEnchant(this));     // Explosive Strike
@@ -81,7 +109,7 @@ public class Enchants extends JavaPlugin implements Listener {
         enchantManager.registerEnchant(new ShinyEnchant(this));               // Shiny (Gold-like behavior)
         enchantManager.registerEnchant(new XPBoostEnchant(this));             // XP Boost
 
-        // 7️⃣ Register listeners (pass managers for XP and stats)
+        // 8️⃣ Register listeners (pass managers for XP and stats)
         getServer().getPluginManager().registerEvents(
                 new CombatListener(enchantManager, levelManager), this
         );
@@ -109,11 +137,30 @@ public class Enchants extends JavaPlugin implements Listener {
         getServer().getPluginManager().registerEvents(
                 new BackpackListener(backpackManager), this
         );
+        getServer().getPluginManager().registerEvents(
+                new SpellWorkstationListener(this, spellManager, spellGUI), this
+        );
+        getServer().getPluginManager().registerEvents(spellGUI, this);
+        getServer().getPluginManager().registerEvents(
+                new SpellCastListener(this, spellManager, manaManager), this
+        );
+        getServer().getPluginManager().registerEvents(
+                new RecipeDiscoveryListener(this), this
+        );
+        getServer().getPluginManager().registerEvents(
+                new ManaPotionListener(manaManager), this
+        );
+        getServer().getPluginManager().registerEvents(
+                new ManaBrewingListener(this), this
+        );
+        getServer().getPluginManager().registerEvents(
+                new GuidebookListener(this), this
+        );
 
-        // 8️⃣ Register player join/quit listener for StatManager & LevelManager cleanup
+        // 9️⃣ Register player join/quit listener for StatManager & LevelManager cleanup
         getServer().getPluginManager().registerEvents(this, this);
 
-        // 9️⃣ Register commands
+        // 🔟 Register commands
         AddCustomEnchantCommand addEnchantCmd = new AddCustomEnchantCommand(enchantManager);
         getCommand("addenchant").setExecutor(addEnchantCmd);
         getCommand("addenchant").setTabCompleter(addEnchantCmd);
@@ -129,12 +176,32 @@ public class Enchants extends JavaPlugin implements Listener {
         getCommand("backpack").setExecutor(
                 new BackpackCommand(backpackManager)
         );
+        getCommand("guidebook").setExecutor(
+                new GuidebookCommand(this)
+        );
 
-        getLogger().info("All custom enchants and commands registered!");
+        // Warp commands
+        WarpCommand warpCmd = new WarpCommand(warpManager);
+        getCommand("warp").setExecutor(warpCmd);
+        getCommand("warp").setTabCompleter(warpCmd);
+
+        SetWarpCommand setWarpCmd = new SetWarpCommand(warpManager);
+        getCommand("setwarp").setExecutor(setWarpCmd);
+        getCommand("setwarp").setTabCompleter(setWarpCmd);
+
+        DelWarpCommand delWarpCmd = new DelWarpCommand(warpManager);
+        getCommand("delwarp").setExecutor(delWarpCmd);
+        getCommand("delwarp").setTabCompleter(delWarpCmd);
+
+        getLogger().info("All custom enchants, spells, and commands registered!");
     }
 
     @Override
     public void onDisable() {
+        // Shutdown mana manager
+        if (manaManager != null) {
+            manaManager.shutdown();
+        }
         getLogger().info("Enchants Plugin Disabled");
     }
 
@@ -166,6 +233,13 @@ public class Enchants extends JavaPlugin implements Listener {
         return achievementManager;
     }
 
+    /**
+     * Getter for SpellManager
+     */
+    public SpellManager getSpellManager() {
+        return spellManager;
+    }
+
     // ==============================
     // Player Join/Quit Event Hooks
     // ==============================
@@ -177,6 +251,8 @@ public class Enchants extends JavaPlugin implements Listener {
         statManager.recalculateStats(player);
         // Load/initialize level data
         levelManager.getPlayerLevel(player);
+        // Initialize mana bar
+        manaManager.getPlayerMana(player);
     }
 
     @EventHandler
@@ -186,5 +262,7 @@ public class Enchants extends JavaPlugin implements Listener {
         statManager.removePlayer(player);
         // Save and clean up level data
         levelManager.removePlayer(player);
+        // Clean up mana data
+        manaManager.removePlayer(player);
     }
 }
