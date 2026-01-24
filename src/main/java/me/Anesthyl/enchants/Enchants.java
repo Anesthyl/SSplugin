@@ -15,6 +15,7 @@ import me.Anesthyl.enchants.listeners.BlockBreakListener;
 import me.Anesthyl.enchants.listeners.CombatListener;
 import me.Anesthyl.enchants.listeners.DonaldJumpListener;
 import me.Anesthyl.enchants.listeners.EnchantTableListener;
+import me.Anesthyl.enchants.listeners.GrindstoneListener;
 import me.Anesthyl.enchants.listeners.ShinyListener;
 import me.Anesthyl.enchants.stat.StatManager;
 import org.bukkit.entity.Player;
@@ -92,6 +93,9 @@ public class Enchants extends JavaPlugin implements Listener {
         );
         getServer().getPluginManager().registerEvents(
                 new AnvilListener(enchantManager), this
+        );
+        getServer().getPluginManager().registerEvents(
+                new GrindstoneListener(enchantManager), this
         );
         getServer().getPluginManager().registerEvents(
                 new me.Anesthyl.enchants.listeners.LavaWalkerListener(enchantManager), this
