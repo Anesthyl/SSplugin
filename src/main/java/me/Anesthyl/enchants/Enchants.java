@@ -140,6 +140,8 @@ public class Enchants extends JavaPlugin implements Listener {
         );
         getServer().getPluginManager().registerEvents(
                 new SkillListener(levelManager), this
+        );
+        getServer().getPluginManager().registerEvents(
                 new SpellWorkstationListener(this, spellManager, spellGUI), this
         );
         getServer().getPluginManager().registerEvents(spellGUI, this);
