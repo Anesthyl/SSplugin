@@ -25,6 +25,7 @@ import me.Anesthyl.enchants.listeners.ManaBrewingListener;
 import me.Anesthyl.enchants.listeners.ManaPotionListener;
 import me.Anesthyl.enchants.listeners.RecipeDiscoveryListener;
 import me.Anesthyl.enchants.listeners.ShinyListener;
+import me.Anesthyl.enchants.listeners.SkillListener;
 import me.Anesthyl.enchants.spell.ManaManager;
 import me.Anesthyl.enchants.spell.SpellCastListener;
 import me.Anesthyl.enchants.spell.SpellGUI;
@@ -138,6 +139,7 @@ public class Enchants extends JavaPlugin implements Listener {
                 new BackpackListener(backpackManager), this
         );
         getServer().getPluginManager().registerEvents(
+                new SkillListener(levelManager), this
                 new SpellWorkstationListener(this, spellManager, spellGUI), this
         );
         getServer().getPluginManager().registerEvents(spellGUI, this);
@@ -163,10 +165,9 @@ public class Enchants extends JavaPlugin implements Listener {
         // 🔟 Register commands
         AddCustomEnchantCommand addEnchantCmd = new AddCustomEnchantCommand(enchantManager);
         getCommand("addenchant").setExecutor(addEnchantCmd);
-        getCommand("addenchant").setTabCompleter(addEnchantCmd);
-        getCommand("level").setExecutor(
-                new LevelCommand(levelManager)
-        );
+        LevelCommand levelCmd = new LevelCommand(levelManager);
+        getCommand("level").setExecutor(levelCmd);
+        getCommand("level").setTabCompleter(levelCmd);
         getCommand("stats").setExecutor(
                 new StatsCommand(statManager)
         );

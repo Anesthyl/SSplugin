@@ -1,61 +1,92 @@
 package me.Anesthyl.enchants.level;
 
-import java.util.HashMap;
+import java.util.EnumMap;
 import java.util.Map;
 
 /**
- * Stores leveling data for a single player.
+ * Stores leveling data for a single player across multiple skills.
+ * Each skill has its own level and XP progression.
  * 
  * Immutable getters; all mutations go through LevelManager.
  */
 public class PlayerLevel {
     
-    private int level;
-    private long totalXP;
-    
-    public PlayerLevel(int startLevel, long startXP) {
-        this.level = startLevel;
-        this.totalXP = startXP;
-    }
+    // Store level and XP for each skill type
+    private final Map<SkillType, Integer> skillLevels;
+    private final Map<SkillType, Long> skillXP;
     
     public PlayerLevel() {
-        this(1, 0L);
+        this.skillLevels = new EnumMap<>(SkillType.class);
+        this.skillXP = new EnumMap<>(SkillType.class);
+        
+        // Initialize all skills to level 1 with 0 XP
+        for (SkillType skill : SkillType.values()) {
+            skillLevels.put(skill, 1);
+            skillXP.put(skill, 0L);
+        }
     }
     
     /**
-     * Get current level (1-based).
+     * Get current level for a specific skill (1-based).
      */
-    public int getLevel() {
-        return level;
+    public int getLevel(SkillType skill) {
+        return skillLevels.getOrDefault(skill, 1);
     }
     
     /**
-     * Get total experience accumulated.
+     * Get total experience for a specific skill.
      */
-    public long getTotalXP() {
-        return totalXP;
+    public long getTotalXP(SkillType skill) {
+        return skillXP.getOrDefault(skill, 0L);
     }
     
     /**
-     * Increase total XP by amount.
-     * Returns true if level up occurred.
+     * Get overall player level (average of all skills).
      */
-    protected boolean addXP(long amount, Map<Integer, Long> thresholds) {
+    public int getOverallLevel() {
+        int total = 0;
+        for (int level : skillLevels.values()) {
+            total += level;
+        }
+        return total / SkillType.values().length;
+    }
+    
+    /**
+     * Get total XP across all skills.
+     */
+    public long getTotalXPAllSkills() {
+        long total = 0;
+        for (long xp : skillXP.values()) {
+            total += xp;
+        }
+        return total;
+    }
+    
+    /**
+     * Increase XP for a specific skill.
+     * Returns true if level up occurred for that skill.
+     */
+    protected boolean addXP(SkillType skill, long amount, Map<Integer, Long> thresholds) {
         if (amount <= 0) return false;
 
-        int oldLevel = level;
-        totalXP += amount;
-        recalculateLevel(thresholds);
+        int oldLevel = getLevel(skill);
+        long currentXP = getTotalXP(skill);
+        long newXP = currentXP + amount;
+        
+        skillXP.put(skill, newXP);
+        recalculateLevel(skill, thresholds);
 
-        return oldLevel != level;
+        return oldLevel != getLevel(skill);
     }
 
     /**
-     * Recalculate level based on total XP.
+     * Recalculate level for a specific skill based on total XP.
      * Should be called by LevelManager after XP changes.
      */
-    protected void recalculateLevel(Map<Integer, Long> thresholds) {
+    protected void recalculateLevel(SkillType skill, Map<Integer, Long> thresholds) {
+        long totalXP = getTotalXP(skill);
         int newLevel = 1;
+        
         for (int lvl = 1; lvl <= thresholds.size(); lvl++) {
             if (totalXP >= thresholds.get(lvl)) {
                 newLevel = lvl;
@@ -63,13 +94,25 @@ public class PlayerLevel {
                 break;
             }
         }
-        level = newLevel;
+        
+        skillLevels.put(skill, newLevel);
     }
     
     /**
-     * Get XP progress to next level (0 to 100).
+     * Set level and XP for a specific skill (used for loading from persistence).
      */
-    public double getProgressToNextLevel(Map<Integer, Long> thresholds) {
+    protected void setSkillData(SkillType skill, int level, long xp) {
+        skillLevels.put(skill, level);
+        skillXP.put(skill, xp);
+    }
+    
+    /**
+     * Get XP progress to next level for a specific skill (0 to 100).
+     */
+    public double getProgressToNextLevel(SkillType skill, Map<Integer, Long> thresholds) {
+        int level = getLevel(skill);
+        long totalXP = getTotalXP(skill);
+        
         long currentThreshold = thresholds.getOrDefault(level, 0L);
         long nextThreshold = thresholds.getOrDefault(level + 1, Long.MAX_VALUE);
         
@@ -84,9 +127,12 @@ public class PlayerLevel {
     }
     
     /**
-     * Get XP needed to reach next level.
+     * Get XP needed to reach next level for a specific skill.
      */
-    public long getXPForNextLevel(Map<Integer, Long> thresholds) {
+    public long getXPForNextLevel(SkillType skill, Map<Integer, Long> thresholds) {
+        int level = getLevel(skill);
+        long totalXP = getTotalXP(skill);
+        
         Long nextThreshold = thresholds.get(level + 1);
         if (nextThreshold == null) {
             return -1; // Max level reached
@@ -94,8 +140,23 @@ public class PlayerLevel {
         return Math.max(0, nextThreshold - totalXP);
     }
     
+    /**
+     * Get all skill levels as a map.
+     */
+    public Map<SkillType, Integer> getAllSkillLevels() {
+        return new EnumMap<>(skillLevels);
+    }
+    
+    /**
+     * Get all skill XP as a map.
+     */
+    public Map<SkillType, Long> getAllSkillXP() {
+        return new EnumMap<>(skillXP);
+    }
+    
     @Override
     public String toString() {
-        return String.format("PlayerLevel{level=%d, totalXP=%d}", level, totalXP);
+        return String.format("PlayerLevel{overallLevel=%d, totalXP=%d, skills=%d}", 
+            getOverallLevel(), getTotalXPAllSkills(), skillLevels.size());
     }
 }
