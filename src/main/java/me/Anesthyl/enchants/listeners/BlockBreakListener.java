@@ -55,9 +55,19 @@ public class BlockBreakListener implements Listener {
 
         // Grant XP based on block type (with boost if applicable)
         if (blockType.toString().endsWith("_ORE") || blockType.toString().contains("ANCIENT_DEBRIS")) {
+            // Mining skill - breaking ores
             levelManager.addMiningXP(player, xpMultiplier);
-        } else if (blockType.toString().endsWith("_LOG") || blockType.toString().contains("WOOD")) {
-            levelManager.addChoppingXP(player, xpMultiplier);
+        } else if (blockType.toString().contains("STONE") || blockType.toString().contains("COBBLESTONE") || 
+                   blockType.toString().contains("ANDESITE") || blockType.toString().contains("DIORITE") || 
+                   blockType.toString().contains("GRANITE") || blockType == Material.NETHERRACK || 
+                   blockType == Material.END_STONE) {
+            // Mining skill - breaking stone
+            int amount = (int) (5 * xpMultiplier); // Less XP than ores
+            levelManager.addMiningXP(player, amount);
+        } else if (blockType.toString().endsWith("_LOG") || blockType.toString().contains("WOOD") || 
+                   blockType.toString().contains("STRIPPED")) {
+            // Wood Cutting skill - chopping wood
+            levelManager.addWoodCuttingXP(player, xpMultiplier);
         }
 
         // Fetch all custom enchants on the tool

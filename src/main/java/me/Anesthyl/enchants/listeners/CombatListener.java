@@ -3,6 +3,8 @@ package me.Anesthyl.enchants.listeners;
 import me.Anesthyl.enchants.enchantsystem.CustomEnchant;
 import me.Anesthyl.enchants.enchantsystem.EnchantManager;
 import me.Anesthyl.enchants.level.LevelManager;
+import me.Anesthyl.enchants.level.SkillType;
+import org.bukkit.Material;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -40,11 +42,24 @@ public class CombatListener implements Listener {
         Player killer = event.getEntity().getKiller();
         if (killer == null) return;
         
-        // Grant XP for kills
-        if (event.getEntity() instanceof Player) {
-            levelManager.addPlayerKillXP(killer);
-        } else {
-            levelManager.addMobKillXP(killer);
+        ItemStack weapon = killer.getInventory().getItemInMainHand();
+        Material weaponType = weapon.getType();
+        
+        // Determine XP amounts based on whether it's a player or mob kill
+        int baseXP = event.getEntity() instanceof Player ? 
+            SkillType.COMBAT.getBaseXpPerAction() * 5 : 
+            SkillType.COMBAT.getBaseXpPerAction();
+        
+        // Award general Combat XP
+        levelManager.addCombatXP(killer, baseXP);
+        
+        // Award weapon-specific XP
+        if (weaponType.toString().contains("SWORD")) {
+            // Duelist - Swordsmanship
+            levelManager.addDuelistXP(killer, SkillType.DUELIST.getBaseXpPerAction());
+        } else if (weaponType.toString().contains("AXE")) {
+            // Executioner - Axemanship
+            levelManager.addExecutionerXP(killer, SkillType.EXECUTIONER.getBaseXpPerAction());
         }
     }
     
@@ -52,10 +67,12 @@ public class CombatListener implements Listener {
     public void onEntityDamage(EntityDamageEvent event) {
         if (!(event.getEntity() instanceof Player player)) return;
         
-        // Grant XP for taking damage (small amount per 0.5 hearts)
+        // Grant Toughness XP for taking damage
         double damageAmount = event.getFinalDamage();
         if (damageAmount >= 1.0) {
-            levelManager.addDamageXP(player);
+            // Award XP based on damage amount (1 XP per half heart)
+            int xpAmount = (int) (damageAmount * SkillType.TOUGHNESS.getBaseXpPerAction());
+            levelManager.addToughnessXP(player, xpAmount);
         }
     }
 }

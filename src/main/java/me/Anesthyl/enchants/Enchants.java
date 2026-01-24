@@ -17,6 +17,7 @@ import me.Anesthyl.enchants.listeners.DonaldJumpListener;
 import me.Anesthyl.enchants.listeners.EnchantTableListener;
 import me.Anesthyl.enchants.listeners.GrindstoneListener;
 import me.Anesthyl.enchants.listeners.ShinyListener;
+import me.Anesthyl.enchants.listeners.SkillListener;
 import me.Anesthyl.enchants.stat.StatManager;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -109,6 +110,9 @@ public class Enchants extends JavaPlugin implements Listener {
         getServer().getPluginManager().registerEvents(
                 new BackpackListener(backpackManager), this
         );
+        getServer().getPluginManager().registerEvents(
+                new SkillListener(levelManager), this
+        );
 
         // 8️⃣ Register player join/quit listener for StatManager & LevelManager cleanup
         getServer().getPluginManager().registerEvents(this, this);
@@ -116,10 +120,9 @@ public class Enchants extends JavaPlugin implements Listener {
         // 9️⃣ Register commands
         AddCustomEnchantCommand addEnchantCmd = new AddCustomEnchantCommand(enchantManager);
         getCommand("addenchant").setExecutor(addEnchantCmd);
-        getCommand("addenchant").setTabCompleter(addEnchantCmd);
-        getCommand("level").setExecutor(
-                new LevelCommand(levelManager)
-        );
+        LevelCommand levelCmd = new LevelCommand(levelManager);
+        getCommand("level").setExecutor(levelCmd);
+        getCommand("level").setTabCompleter(levelCmd);
         getCommand("stats").setExecutor(
                 new StatsCommand(statManager)
         );
