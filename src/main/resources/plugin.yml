@@ -20,3 +20,15 @@ commands:
   backpack:
     description: Give yourself a backpack (OP only)
     usage: /backpack
+  guidebook:
+    description: Give yourself the Legends of the Arcane guidebook
+    usage: /guidebook
+  setwarp:
+    description: Set a personal warp at your current location
+    usage: /setwarp <name>
+  warp:
+    description: Teleport to one of your personal warps
+    usage: /warp [name]
+  delwarp:
+    description: Delete one of your personal warps
+    usage: /delwarp <name>

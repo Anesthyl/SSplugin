@@ -23,6 +23,7 @@ import java.util.Random;
  */
 public class SmeltersDelightEnchant extends CustomEnchant {
 
+    private final JavaPlugin plugin;
     private static final Random RANDOM = new Random();
 
     /**
@@ -31,6 +32,9 @@ public class SmeltersDelightEnchant extends CustomEnchant {
     private static final Map<Material, Material> SMELT_MAP = new HashMap<>();
 
     static {
+        SMELT_MAP.put(Material.COAL_ORE, Material.COAL);
+        SMELT_MAP.put(Material.DEEPSLATE_COAL_ORE, Material.COAL);
+
         SMELT_MAP.put(Material.IRON_ORE, Material.IRON_INGOT);
         SMELT_MAP.put(Material.DEEPSLATE_IRON_ORE, Material.IRON_INGOT);
 
@@ -46,6 +50,7 @@ public class SmeltersDelightEnchant extends CustomEnchant {
 
     public SmeltersDelightEnchant(JavaPlugin plugin) {
         super(plugin, "smelters_delight", "§eSmelter's Delight", 1);
+        this.plugin = plugin;
     }
 
     // --------------------------------------------------
@@ -58,6 +63,16 @@ public class SmeltersDelightEnchant extends CustomEnchant {
         if (smelted == null) return;
 
         ItemStack tool = player.getInventory().getItemInMainHand();
+
+        // Skip if Vein Miner is present - Vein Miner handles Smelter's Delight integration
+        if (tool != null && tool.hasItemMeta()) {
+            org.bukkit.inventory.meta.ItemMeta meta = tool.getItemMeta();
+            if (meta.getPersistentDataContainer().has(
+                new org.bukkit.NamespacedKey(plugin, "vein_miner"),
+                org.bukkit.persistence.PersistentDataType.INTEGER)) {
+                return; // Vein Miner will handle everything
+            }
+        }
 
         // Base amount is 1
         int amount = 1;

@@ -160,6 +160,9 @@ public class BackpackManager {
         recipe.setIngredient('L', Material.LEATHER);
         recipe.setIngredient('C', Material.CHEST);
 
+        // Make discoverable in recipe book
+        recipe.setGroup("backpacks");
+
         Bukkit.addRecipe(recipe);
         plugin.getLogger().info("Backpack recipe registered!");
     }
