@@ -1,8 +1,13 @@
 package me.Anesthyl.enchants;
 
 import me.Anesthyl.enchants.Commands.AddCustomEnchantCommand;
+import me.Anesthyl.enchants.Commands.BackpackCommand;
+import me.Anesthyl.enchants.Commands.HealCommand;
 import me.Anesthyl.enchants.Commands.LevelCommand;
 import me.Anesthyl.enchants.Commands.StatsCommand;
+import me.Anesthyl.enchants.achievements.AchievementManager;
+import me.Anesthyl.enchants.backpack.BackpackListener;
+import me.Anesthyl.enchants.backpack.BackpackManager;
 import me.Anesthyl.enchants.enchantsystem.*;
 import me.Anesthyl.enchants.level.LevelManager;
 import me.Anesthyl.enchants.listeners.AnvilListener;
@@ -35,6 +40,8 @@ public class Enchants extends JavaPlugin implements Listener {
     private EnchantManager enchantManager;
     private StatManager statManager;
     private LevelManager levelManager;
+    private BackpackManager backpackManager;
+    private AchievementManager achievementManager;
 
     @Override
     public void onEnable() {
@@ -49,7 +56,13 @@ public class Enchants extends JavaPlugin implements Listener {
         // 3️⃣ Initialize the LevelManager
         levelManager = new LevelManager(this);
 
-        // 4️⃣ Register all custom enchants
+        // 4️⃣ Initialize the BackpackManager
+        backpackManager = new BackpackManager(this);
+
+        // 5️⃣ Initialize the AchievementManager
+        achievementManager = new AchievementManager(this, enchantManager);
+
+        // 6️⃣ Register all custom enchants
         // Combat Enchants
         enchantManager.registerEnchant(new LifestealEnchant(this));           // Lifesteal
         enchantManager.registerEnchant(new ExplosiveStrikeEnchant(this));     // Explosive Strike
@@ -65,8 +78,9 @@ public class Enchants extends JavaPlugin implements Listener {
 
         // Armor Enchants
         enchantManager.registerEnchant(new ShinyEnchant(this));               // Shiny (Gold-like behavior)
+        enchantManager.registerEnchant(new XPBoostEnchant(this));             // XP Boost
 
-        // 5️⃣ Register listeners (pass managers for XP and stats)
+        // 7️⃣ Register listeners (pass managers for XP and stats)
         getServer().getPluginManager().registerEvents(
                 new CombatListener(enchantManager, levelManager), this
         );
@@ -88,19 +102,28 @@ public class Enchants extends JavaPlugin implements Listener {
         getServer().getPluginManager().registerEvents(
                 new ShinyListener(enchantManager), this
         );
+        getServer().getPluginManager().registerEvents(
+                new BackpackListener(backpackManager), this
+        );
 
-        // 6️⃣ Register player join/quit listener for StatManager & LevelManager cleanup
+        // 8️⃣ Register player join/quit listener for StatManager & LevelManager cleanup
         getServer().getPluginManager().registerEvents(this, this);
 
-        // 7️⃣ Register commands
-        getCommand("addcustomenchant").setExecutor(
-                new AddCustomEnchantCommand(enchantManager)
-        );
+        // 9️⃣ Register commands
+        AddCustomEnchantCommand addEnchantCmd = new AddCustomEnchantCommand(enchantManager);
+        getCommand("addenchant").setExecutor(addEnchantCmd);
+        getCommand("addenchant").setTabCompleter(addEnchantCmd);
         getCommand("level").setExecutor(
                 new LevelCommand(levelManager)
         );
         getCommand("stats").setExecutor(
                 new StatsCommand(statManager)
+        );
+        getCommand("heal").setExecutor(
+                new HealCommand()
+        );
+        getCommand("backpack").setExecutor(
+                new BackpackCommand(backpackManager)
         );
 
         getLogger().info("All custom enchants and commands registered!");
@@ -130,6 +153,13 @@ public class Enchants extends JavaPlugin implements Listener {
      */
     public LevelManager getLevelManager() {
         return levelManager;
+    }
+
+    /**
+     * Getter for AchievementManager
+     */
+    public AchievementManager getAchievementManager() {
+        return achievementManager;
     }
 
     // ==============================

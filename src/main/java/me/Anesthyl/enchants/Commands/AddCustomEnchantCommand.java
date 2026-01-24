@@ -7,21 +7,26 @@ import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
+import java.util.stream.Collectors;
 
 /**
- * /addcustomenchant <enchant> [level]
+ * /addenchant <enchant> [level]
  *
  * Dev Notes:
  * - OP-only command.
  * - Applies any registered custom enchant.
  * - Level defaults to 1 and is capped at enchant max.
  * - All compatibility rules are enforced via EnchantUtil.
+ * - Tab completion for enchant names and levels.
  */
-public class AddCustomEnchantCommand implements CommandExecutor {
+public class AddCustomEnchantCommand implements CommandExecutor, TabCompleter {
 
     private final EnchantManager enchantManager;
 
@@ -43,7 +48,7 @@ public class AddCustomEnchantCommand implements CommandExecutor {
         }
 
         if (args.length == 0) {
-            player.sendMessage(ChatColor.RED + "Usage: /addcustomenchant <enchant> [level]");
+            player.sendMessage(ChatColor.RED + "Usage: /addenchant <enchant> [level]");
             return true;
         }
 
@@ -90,5 +95,36 @@ public class AddCustomEnchantCommand implements CommandExecutor {
                 + enchant.getDisplayName() + " "
                 + level + "!");
         return true;
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String label, String[] args) {
+        List<String> completions = new ArrayList<>();
+
+        // First argument: enchant names
+        if (args.length == 1) {
+            String partial = args[0].toLowerCase();
+            return enchantManager.getEnchants().stream()
+                    .map(enchant -> enchant.getKey().getKey())
+                    .filter(name -> name.startsWith(partial))
+                    .collect(Collectors.toList());
+        }
+
+        // Second argument: level suggestions (1-max level of selected enchant)
+        if (args.length == 2) {
+            String enchantName = args[0].toLowerCase();
+            return enchantManager.getEnchant(enchantName)
+                    .map(enchant -> {
+                        List<String> levels = new ArrayList<>();
+                        int maxLevel = enchant.getMaxLevel();
+                        for (int i = 1; i <= maxLevel; i++) {
+                            levels.add(String.valueOf(i));
+                        }
+                        return levels;
+                    })
+                    .orElse(new ArrayList<>());
+        }
+
+        return completions;
     }
 }

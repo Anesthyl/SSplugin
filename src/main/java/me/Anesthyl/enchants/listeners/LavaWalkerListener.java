@@ -27,6 +27,16 @@ public class LavaWalkerListener implements Listener {
 
     @EventHandler
     public void onPlayerMove(PlayerMoveEvent event) {
+        // Null check for getTo() in edge cases
+        if (event.getTo() == null) return;
+
+        // Only trigger on actual block movement, not head turns
+        if (event.getFrom().getBlockX() == event.getTo().getBlockX() &&
+            event.getFrom().getBlockY() == event.getTo().getBlockY() &&
+            event.getFrom().getBlockZ() == event.getTo().getBlockZ()) {
+            return;
+        }
+
         ItemStack boots = event.getPlayer().getInventory().getBoots();
         if (boots == null) return;
 

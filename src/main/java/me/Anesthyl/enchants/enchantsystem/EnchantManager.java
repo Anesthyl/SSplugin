@@ -31,6 +31,10 @@ public class EnchantManager {
         return enchants.values();
     }
 
+    public Collection<CustomEnchant> getAllEnchants() {
+        return enchants.values();
+    }
+
     public Optional<CustomEnchant> getEnchant(String key) {
         return Optional.ofNullable(enchants.get(key));
     }

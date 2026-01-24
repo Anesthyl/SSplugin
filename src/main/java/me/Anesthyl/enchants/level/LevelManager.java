@@ -120,19 +120,16 @@ public class LevelManager {
      */
     public void addXP(Player player, int amount) {
         PlayerLevel pLevel = getPlayerLevel(player);
-        int oldLevel = pLevel.getLevel();
-        
-        pLevel.addXP(amount);
-        pLevel.recalculateLevel(levelThresholds);
-        
-        int newLevel = pLevel.getLevel();
-        
+
+        boolean leveledUp = pLevel.addXP(amount, levelThresholds);
+
         // Level up notification
-        if (newLevel > oldLevel) {
+        if (leveledUp) {
+            int newLevel = pLevel.getLevel();
             player.sendMessage("§6§l⭐ LEVEL UP! §6You are now §lLevel " + newLevel + "§6!");
             // TODO: Award stat bonuses on level up
         }
-        
+
         // Save progress
         saveToPDC(player, pLevel);
     }
@@ -143,9 +140,17 @@ public class LevelManager {
     public void addMiningXP(Player player) {
         addXP(player, XP_MINE_BLOCK);
     }
-    
+
+    public void addMiningXP(Player player, double multiplier) {
+        addXP(player, (int) (XP_MINE_BLOCK * multiplier));
+    }
+
     public void addChoppingXP(Player player) {
         addXP(player, XP_CHOP_LOG);
+    }
+
+    public void addChoppingXP(Player player, double multiplier) {
+        addXP(player, (int) (XP_CHOP_LOG * multiplier));
     }
     
     public void addMobKillXP(Player player) {

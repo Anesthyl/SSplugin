@@ -65,10 +65,14 @@ public class LavaWalkerEnchant extends CustomEnchant {
 
     @Override
     public void onTableEnchant(ItemStack item, int level) {
-        if (item == null || level <= 0) return;
+        if (item == null || !item.hasItemMeta() || level <= 0) return;
 
-        item.getItemMeta().getPersistentDataContainer()
+        org.bukkit.inventory.meta.ItemMeta meta = item.getItemMeta();
+        if (meta == null) return;
+
+        meta.getPersistentDataContainer()
                 .set(getKey(), org.bukkit.persistence.PersistentDataType.INTEGER, level);
+        item.setItemMeta(meta);
     }
 
     // ------------------------------------------------------------
@@ -101,18 +105,27 @@ public class LavaWalkerEnchant extends CustomEnchant {
         int radius = getRadius(level);
         Set<Block> toRevert = new HashSet<>();
 
-        Block center = player.getLocation().getBlock();
+        // Use player's feet position (eye location - 1.62 blocks for standing player)
+        Block center = player.getLocation().subtract(0, 0.5, 0).getBlock();
 
         for (int x = -radius; x <= radius; x++) {
             for (int z = -radius; z <= radius; z++) {
+                // Check blocks at player's feet level and one block below
+                for (int y = 0; y <= 1; y++) {
+                    Block block = center.getRelative(x, -y, z);
 
-                Block block = center.getRelative(x, -1, z);
+                    // Only convert full lava source blocks
+                    if (block.getType() != Material.LAVA) continue;
+                    if (!block.getBlockData().getAsString().contains("[level=0]")) continue;
 
-                // Only convert full lava source blocks
-                if (block.getType() != Material.LAVA) continue;
+                    // Don't convert if player would be inside the obsidian
+                    Block playerBlock = player.getLocation().getBlock();
+                    Block playerFeetBlock = player.getLocation().subtract(0, 1, 0).getBlock();
+                    if (block.equals(playerBlock) || block.equals(playerFeetBlock)) continue;
 
-                block.setType(Material.OBSIDIAN);
-                toRevert.add(block);
+                    block.setType(Material.OBSIDIAN);
+                    toRevert.add(block);
+                }
             }
         }
 
@@ -122,7 +135,16 @@ public class LavaWalkerEnchant extends CustomEnchant {
                     plugin,
                     () -> {
                         for (Block b : toRevert) {
-                            if (b.getType() == Material.OBSIDIAN) {
+                            // Only revert if player is not standing on it
+                            boolean playerNearby = false;
+                            for (Player p : Bukkit.getOnlinePlayers()) {
+                                if (p.getLocation().distance(b.getLocation()) < 2.0) {
+                                    playerNearby = true;
+                                    break;
+                                }
+                            }
+
+                            if (b.getType() == Material.OBSIDIAN && !playerNearby) {
                                 b.setType(Material.LAVA);
                             }
                         }
@@ -138,14 +160,15 @@ public class LavaWalkerEnchant extends CustomEnchant {
 
     /**
      * Radius per level (configurable).
+     * Level 1 = 3x3 (radius 1), Level 2 = 5x5 (radius 2)
      *
      * config.yml example:
      * lava-walker:
-     *   radius-per-level: 2
+     *   radius-per-level: 1
      */
     private int getRadius(int level) {
         FileConfiguration config = plugin.getConfig();
-        int perLevel = config.getInt("lava-walker.radius-per-level", 2);
+        int perLevel = config.getInt("lava-walker.radius-per-level", 1);
         return level * perLevel;
     }
 }

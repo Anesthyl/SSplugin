@@ -26,11 +26,11 @@ public class DonaldJumpEnchant extends CustomEnchant {
     private static final Random RANDOM = new Random();
     private final Enchants plugin;
 
-    // Rainbow letters: §c§6§e§a§b§9§d
-    private static final String RAINBOW_NAME = "§cD§6o§e n§a a§b l§9 d §dJ§c u§6 m§e p";
+    // Rainbow letters: Red, Gold, Yellow, Green, Aqua, Blue, Light Purple
+    private static final String RAINBOW_NAME = "§cD§6o§en§aa§bl§9d §dJ§cu§6m§ep";
 
     public DonaldJumpEnchant(JavaPlugin plugin) {
-        super(plugin, "donald_jump", RAINBOW_NAME, 1);
+        super(plugin, "donald_jump", RAINBOW_NAME, 3);
         this.plugin = (Enchants) plugin;
     }
 
@@ -61,9 +61,14 @@ public class DonaldJumpEnchant extends CustomEnchant {
 
     @Override
     public void onTableEnchant(ItemStack item, int level) {
-        if (item == null || level <= 0) return;
-        item.getItemMeta().getPersistentDataContainer()
+        if (item == null || !item.hasItemMeta() || level <= 0) return;
+
+        org.bukkit.inventory.meta.ItemMeta meta = item.getItemMeta();
+        if (meta == null) return;
+
+        meta.getPersistentDataContainer()
                 .set(getKey(), org.bukkit.persistence.PersistentDataType.INTEGER, level);
+        item.setItemMeta(meta);
     }
 
     // ===============================

@@ -77,20 +77,16 @@ public class VeinMinerEnchant extends CustomEnchant {
         collectVein(origin, origin.getType(), vein);
 
         for (Block block : vein) {
-            Material dropType = block.getType();
-            int amount = 1;
+            Material oreType = block.getType();
+            Material dropType = getOreDrop(oreType);
+            int amount = getDropAmount(oreType, fortune);
 
-            // Smelter's Delight integration
+            // Smelter's Delight integration - convert ore drop to smelted result
             if (smelter != null) {
-                Material smelted = smelter.getSmeltedResult(dropType);
+                Material smelted = smelter.getSmeltedResult(oreType);
                 if (smelted != null) {
                     dropType = smelted;
                 }
-            }
-
-            // Fortune logic
-            for (int i = 0; i < fortune; i++) {
-                if (RANDOM.nextDouble() < 0.33) amount++;
             }
 
             block.getWorld().dropItemNaturally(
@@ -105,6 +101,50 @@ public class VeinMinerEnchant extends CustomEnchant {
                 tool.damage(1, player);
             }
         }
+    }
+
+    /**
+     * Get the proper ore drop for each ore type (mimics vanilla behavior)
+     */
+    private Material getOreDrop(Material ore) {
+        return switch (ore) {
+            case IRON_ORE, DEEPSLATE_IRON_ORE -> Material.RAW_IRON;
+            case GOLD_ORE, DEEPSLATE_GOLD_ORE -> Material.RAW_GOLD;
+            case COPPER_ORE, DEEPSLATE_COPPER_ORE -> Material.RAW_COPPER;
+            case DIAMOND_ORE, DEEPSLATE_DIAMOND_ORE -> Material.DIAMOND;
+            case EMERALD_ORE, DEEPSLATE_EMERALD_ORE -> Material.EMERALD;
+            case LAPIS_ORE, DEEPSLATE_LAPIS_ORE -> Material.LAPIS_LAZULI;
+            case REDSTONE_ORE, DEEPSLATE_REDSTONE_ORE -> Material.REDSTONE;
+            case NETHER_GOLD_ORE -> Material.GOLD_NUGGET;
+            case NETHER_QUARTZ_ORE -> Material.QUARTZ;
+            default -> ore; // Fallback
+        };
+    }
+
+    /**
+     * Calculate drop amount with Fortune scaling (vanilla-style)
+     */
+    private int getDropAmount(Material ore, int fortune) {
+        int baseAmount = 1;
+
+        // Some ores drop more base items (like lapis and redstone)
+        if (ore == Material.LAPIS_ORE || ore == Material.DEEPSLATE_LAPIS_ORE) {
+            baseAmount = 4 + RANDOM.nextInt(5); // 4-8 lapis
+        } else if (ore == Material.REDSTONE_ORE || ore == Material.DEEPSLATE_REDSTONE_ORE) {
+            baseAmount = 4 + RANDOM.nextInt(2); // 4-5 redstone
+        } else if (ore == Material.NETHER_GOLD_ORE) {
+            baseAmount = 2 + RANDOM.nextInt(4); // 2-5 gold nuggets
+        }
+
+        // Apply Fortune multiplier (vanilla Fortune behavior)
+        if (fortune > 0) {
+            // Fortune increases max possible drops
+            int maxBonus = fortune;
+            int bonus = RANDOM.nextInt(maxBonus + 1);
+            baseAmount += bonus;
+        }
+
+        return baseAmount;
     }
 
     private void collectVein(Block block, Material type, Set<Block> collected) {
@@ -136,7 +176,13 @@ public class VeinMinerEnchant extends CustomEnchant {
 
     @Override
     public void onTableEnchant(ItemStack item, int level) {
-        item.getItemMeta().getPersistentDataContainer()
+        if (item == null || !item.hasItemMeta() || level <= 0) return;
+
+        org.bukkit.inventory.meta.ItemMeta meta = item.getItemMeta();
+        if (meta == null) return;
+
+        meta.getPersistentDataContainer()
                 .set(getKey(), org.bukkit.persistence.PersistentDataType.INTEGER, level);
+        item.setItemMeta(meta);
     }
 }

@@ -40,15 +40,16 @@ public class PlayerLevel {
      * Increase total XP by amount.
      * Returns true if level up occurred.
      */
-    protected boolean addXP(long amount) {
+    protected boolean addXP(long amount, Map<Integer, Long> thresholds) {
         if (amount <= 0) return false;
-        
-        long oldLevel = level;
+
+        int oldLevel = level;
         totalXP += amount;
-        
+        recalculateLevel(thresholds);
+
         return oldLevel != level;
     }
-    
+
     /**
      * Recalculate level based on total XP.
      * Should be called by LevelManager after XP changes.

@@ -89,13 +89,28 @@ public class EnchantUtil {
                 ? new ArrayList<>(meta.getLore())
                 : new ArrayList<>();
 
-        // Remove existing custom enchant lore lines
-        lore.removeIf(line -> line.startsWith("§"));
+        // Get current custom enchants
+        Map<CustomEnchant, Integer> enchants = enchantManager.getItemEnchants(item);
+
+        // Build list of formatted enchant lines to identify and remove
+        List<String> enchantLinePatterns = new ArrayList<>();
+        for (CustomEnchant enchant : enchantManager.getAllEnchants()) {
+            // Match lines that start with the enchant's display name (including color codes)
+            String displayPrefix = enchant.getDisplayName().split(" ")[0]; // Get first word with color
+            enchantLinePatterns.add(displayPrefix);
+        }
+
+        // Remove only custom enchant lore lines by matching display name patterns
+        lore.removeIf(line -> {
+            for (String pattern : enchantLinePatterns) {
+                if (line.startsWith(pattern)) {
+                    return true;
+                }
+            }
+            return false;
+        });
 
         // Re-add current custom enchants
-        Map<CustomEnchant, Integer> enchants =
-                enchantManager.getItemEnchants(item);
-
         for (Map.Entry<CustomEnchant, Integer> entry : enchants.entrySet()) {
             CustomEnchant enchant = entry.getKey();
             int level = entry.getValue();

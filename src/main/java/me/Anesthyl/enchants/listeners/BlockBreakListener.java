@@ -2,6 +2,7 @@ package me.Anesthyl.enchants.listeners;
 
 import me.Anesthyl.enchants.enchantsystem.CustomEnchant;
 import me.Anesthyl.enchants.enchantsystem.EnchantManager;
+import me.Anesthyl.enchants.enchantsystem.XPBoostEnchant;
 import me.Anesthyl.enchants.level.LevelManager;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -40,31 +41,27 @@ public class BlockBreakListener implements Listener {
 
     @EventHandler
     public void onBlockBreak(BlockBreakEvent event) {
-        Player player = event.getPlayer();
-        Material blockType = event.getBlock().getType();
-        ItemStack tool = player.getInventory().getItemInMainHand();
-        
-        // Grant XP based on block type
-        if (blockType.toString().endsWith("_ORE") || blockType.toString().contains("ANCIENT_DEBRIS")) {
-            levelManager.addMiningXP(player);
-        } else if (blockType.toString().endsWith("_LOG") || blockType.toString().contains("WOOD")) {
-            levelManager.addChoppingXP(player);
-        }
-        
-        // Trigger custom enchants
-        Map<CustomEnchant, Integer> enchants = enchantManager.getItemEnchants(tool);
-        for (Map.Entry<CustomEnchant, Integer> entry : enchants.entrySet()) {
-            entry.getKey().onBlockBreak(player, event.getBlock(), entry.getValue());
         // Ignore cancelled events (other plugins, protections, etc.)
         if (event.isCancelled()) return;
 
-        ItemStack tool = event.getPlayer().getInventory().getItemInMainHand();
+        Player player = event.getPlayer();
+        Material blockType = event.getBlock().getType();
+        ItemStack tool = player.getInventory().getItemInMainHand();
+
         if (tool == null || tool.getType().isAir()) return;
 
-        // Fetch all custom enchants on the tool
-        Map<CustomEnchant, Integer> enchants =
-                enchantManager.getItemEnchants(tool);
+        // Check for XP Boost helmet enchant
+        double xpMultiplier = getXPBoostMultiplier(player);
 
+        // Grant XP based on block type (with boost if applicable)
+        if (blockType.toString().endsWith("_ORE") || blockType.toString().contains("ANCIENT_DEBRIS")) {
+            levelManager.addMiningXP(player, xpMultiplier);
+        } else if (blockType.toString().endsWith("_LOG") || blockType.toString().contains("WOOD")) {
+            levelManager.addChoppingXP(player, xpMultiplier);
+        }
+
+        // Fetch all custom enchants on the tool
+        Map<CustomEnchant, Integer> enchants = enchantManager.getItemEnchants(tool);
         if (enchants.isEmpty()) return;
 
         /*
@@ -80,11 +77,23 @@ public class BlockBreakListener implements Listener {
             CustomEnchant enchant = entry.getKey();
             int level = entry.getValue();
 
-            enchant.onBlockBreak(
-                    event.getPlayer(),
-                    event.getBlock(),
-                    level
-            );
+            enchant.onBlockBreak(player, event.getBlock(), level);
         }
+    }
+
+    /**
+     * Get XP multiplier from helmet enchant
+     */
+    private double getXPBoostMultiplier(Player player) {
+        ItemStack helmet = player.getInventory().getHelmet();
+        if (helmet == null) return 1.0;
+
+        Map<CustomEnchant, Integer> enchants = enchantManager.getItemEnchants(helmet);
+        for (Map.Entry<CustomEnchant, Integer> entry : enchants.entrySet()) {
+            if (entry.getKey() instanceof XPBoostEnchant xpBoost) {
+                return xpBoost.getXPMultiplier(entry.getValue());
+            }
+        }
+        return 1.0;
     }
 }

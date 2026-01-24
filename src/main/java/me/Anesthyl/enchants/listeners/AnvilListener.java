@@ -8,9 +8,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.PrepareAnvilEvent;
 import org.bukkit.inventory.ItemStack;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -55,22 +52,6 @@ public class AnvilListener implements Listener {
         for (Map.Entry<CustomEnchant, Integer> entry : rightEnchants.entrySet()) {
             CustomEnchant enchant = entry.getKey();
             int rightLevel = entry.getValue();
-            
-            // Get existing level from left item (if any)
-            int leftLevel = combinedEnchants.getOrDefault(enchant, 0);
-            
-            // Combine levels: if same enchant and same level, increase by 1 (like vanilla)
-            // Otherwise, take the higher level
-            int newLevel;
-            if (leftLevel == rightLevel && leftLevel > 0) {
-                // Same enchant, same level -> increase by 1 (vanilla behavior)
-                newLevel = Math.min(enchant.getMaxLevel(), leftLevel + 1);
-            } else {
-                // Different levels -> take the higher one
-                newLevel = Math.max(leftLevel, rightLevel);
-            }
-            combinedEnchants.put(enchant, newLevel);
-        }
 
             // Ensure enchant is valid for this item
             if (!enchant.canApply(result)) continue;
@@ -89,8 +70,6 @@ public class AnvilListener implements Listener {
             } else {
                 newLevel = Math.max(leftLevel, rightLevel);
             }
-            return false;
-        });
 
             // Cap at enchant max level
             newLevel = Math.min(newLevel, enchant.getMaxLevel());
@@ -107,9 +86,7 @@ public class AnvilListener implements Listener {
             }
         }
 
-        // Only set output if something actually changed
-        if (changed) {
-            event.setResult(result);
-        }
+        // Set the result to prevent vanilla from overriding
+        event.setResult(result);
     }
 }

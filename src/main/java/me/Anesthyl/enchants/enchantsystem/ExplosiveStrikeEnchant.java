@@ -48,23 +48,29 @@ public class ExplosiveStrikeEnchant extends CustomEnchant {
         if (attacker == null || target == null) return;
 
         Location loc = target.getLocation();
-        double radius = 1.0 + (0.5 * level);
+        double radius = 1.0 + (0.5 * level); // Scales with level: Level 1 = 1.5, Level 2 = 2.0, Level 3 = 2.5
+        double damage = 1.0 + (level * 0.5); // Level 1 = 1.5, Level 2 = 2.0, Level 3 = 2.5 hearts
 
-        // Apply knockback to nearby entities (including other players or mobs)
+        // Apply knockback and damage to nearby entities
         for (LivingEntity entity : loc.getWorld().getNearbyEntities(loc, radius, radius, radius)
                 .stream()
                 .filter(e -> e instanceof LivingEntity)
                 .map(e -> (LivingEntity) e)
                 .toList()) {
 
-            if (entity.equals(target)) continue; // Skip the original target
+            // Skip the attacker (don't damage yourself)
+            if (entity.equals(attacker)) continue;
 
+            // Calculate knockback direction and strength
             Vector knockback = entity.getLocation().toVector()
                     .subtract(loc.toVector())
                     .normalize()
-                    .multiply(0.5 * level);
+                    .multiply(0.5 * level); // Stronger knockback at higher levels
 
             entity.setVelocity(knockback);
+
+            // Apply damage (scales with level)
+            entity.damage(damage);
         }
     }
 
@@ -102,9 +108,13 @@ public class ExplosiveStrikeEnchant extends CustomEnchant {
      */
     @Override
     public void onTableEnchant(ItemStack item, int level) {
-        if (item == null || level <= 0) return;
+        if (item == null || !item.hasItemMeta() || level <= 0) return;
 
-        item.getItemMeta().getPersistentDataContainer()
+        org.bukkit.inventory.meta.ItemMeta meta = item.getItemMeta();
+        if (meta == null) return;
+
+        meta.getPersistentDataContainer()
                 .set(getKey(), org.bukkit.persistence.PersistentDataType.INTEGER, level);
+        item.setItemMeta(meta);
     }
 }

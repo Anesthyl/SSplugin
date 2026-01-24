@@ -5,12 +5,18 @@ api-version: 1.21
 authors: [ Anesthyl & Ferocity ]
 
 commands:
-  addcustomenchant:
+  addenchant:
     description: Apply a custom enchant to the item in-hand
-    usage: /addcustomenchant <enchant> [level]
+    usage: /addenchant <enchant> [level]
   level:
     description: View your current level and XP progress
     usage: /level
   stats:
     description: View your current stat bonuses from enchants
     usage: /stats
+  heal:
+    description: Heal yourself or another player to full health
+    usage: /heal [player]
+  backpack:
+    description: Give yourself a backpack (OP only)
+    usage: /backpack

@@ -28,8 +28,8 @@ public class ShinyEnchant extends CustomEnchant implements Listener {
     private static final Random RANDOM = new Random();
     private final Enchants plugin;
 
-    // Rainbow letters: §c§6§e§a§b§9§d
-    private static final String RAINBOW_NAME = "§6S§e h§a i§b n§d y";
+    // Rainbow letters: Gold, Yellow, Green, Aqua, Light Purple
+    private static final String RAINBOW_NAME = "§6S§eh§ai§bn§dy";
 
     public ShinyEnchant(JavaPlugin plugin) {
         super(plugin, "shiny", RAINBOW_NAME, 1);
@@ -67,9 +67,14 @@ public class ShinyEnchant extends CustomEnchant implements Listener {
 
     @Override
     public void onTableEnchant(ItemStack item, int level) {
-        if (item == null || level <= 0) return;
-        item.getItemMeta().getPersistentDataContainer()
+        if (item == null || !item.hasItemMeta() || level <= 0) return;
+
+        org.bukkit.inventory.meta.ItemMeta meta = item.getItemMeta();
+        if (meta == null) return;
+
+        meta.getPersistentDataContainer()
                 .set(getKey(), org.bukkit.persistence.PersistentDataType.INTEGER, level);
+        item.setItemMeta(meta);
     }
 
     // ===============================

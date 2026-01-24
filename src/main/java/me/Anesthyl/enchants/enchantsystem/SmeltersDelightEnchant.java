@@ -45,7 +45,7 @@ public class SmeltersDelightEnchant extends CustomEnchant {
     }
 
     public SmeltersDelightEnchant(JavaPlugin plugin) {
-        super(plugin, "smelters_delight", "§eSmelter's Delight", 3);
+        super(plugin, "smelters_delight", "§eSmelter's Delight", 1);
     }
 
     // --------------------------------------------------
@@ -59,8 +59,8 @@ public class SmeltersDelightEnchant extends CustomEnchant {
 
         ItemStack tool = player.getInventory().getItemInMainHand();
 
-        // Base amount scales with enchant level
-        int amount = 1 + RANDOM.nextInt(level);
+        // Base amount is 1
+        int amount = 1;
 
         // Fortune support
         if (tool != null) {
@@ -109,12 +109,16 @@ public class SmeltersDelightEnchant extends CustomEnchant {
 
     @Override
     public void onTableEnchant(ItemStack item, int level) {
-        if (item == null || level <= 0) return;
+        if (item == null || !item.hasItemMeta() || level <= 0) return;
 
-        item.getItemMeta().getPersistentDataContainer()
+        org.bukkit.inventory.meta.ItemMeta meta = item.getItemMeta();
+        if (meta == null) return;
+
+        meta.getPersistentDataContainer()
                 .set(getKey(),
                         org.bukkit.persistence.PersistentDataType.INTEGER,
                         level);
+        item.setItemMeta(meta);
     }
 
     // --------------------------------------------------

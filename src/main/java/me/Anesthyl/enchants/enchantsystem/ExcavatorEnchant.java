@@ -119,9 +119,13 @@ public class ExcavatorEnchant extends CustomEnchant {
      */
     @Override
     public void onTableEnchant(ItemStack item, int level) {
-        if (item == null || level <= 0) return;
+        if (item == null || !item.hasItemMeta() || level <= 0) return;
 
-        item.getItemMeta().getPersistentDataContainer()
+        org.bukkit.inventory.meta.ItemMeta meta = item.getItemMeta();
+        if (meta == null) return;
+
+        meta.getPersistentDataContainer()
                 .set(getKey(), org.bukkit.persistence.PersistentDataType.INTEGER, level);
+        item.setItemMeta(meta);
     }
 }

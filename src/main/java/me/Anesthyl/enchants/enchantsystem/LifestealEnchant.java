@@ -58,7 +58,13 @@ public class LifestealEnchant extends CustomEnchant {
 
     @Override
     public void onTableEnchant(ItemStack item, int level) {
-        item.getItemMeta().getPersistentDataContainer()
+        if (item == null || !item.hasItemMeta() || level <= 0) return;
+
+        org.bukkit.inventory.meta.ItemMeta meta = item.getItemMeta();
+        if (meta == null) return;
+
+        meta.getPersistentDataContainer()
                 .set(getKey(), org.bukkit.persistence.PersistentDataType.INTEGER, level);
+        item.setItemMeta(meta);
     }
 }
