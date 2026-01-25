@@ -19,6 +19,7 @@ public class ManaManager {
     private final JavaPlugin plugin;
     private final Map<UUID, PlayerMana> playerManaMap = new HashMap<>();
     private BukkitTask regenTask;
+    private me.Anesthyl.enchants.Commands.InfiniteManaCommand infiniteManaCommand;
 
     // Mana constants
     private static final double MAX_MANA = 100.0;
@@ -29,6 +30,13 @@ public class ManaManager {
     public ManaManager(JavaPlugin plugin) {
         this.plugin = plugin;
         startManaRegeneration();
+    }
+
+    /**
+     * Sets the infinite mana command reference (for checking infinite mana status).
+     */
+    public void setInfiniteManaCommand(me.Anesthyl.enchants.Commands.InfiniteManaCommand command) {
+        this.infiniteManaCommand = command;
     }
 
     /**
@@ -73,6 +81,14 @@ public class ManaManager {
      * Uses mana from a player. Returns true if successful.
      */
     public boolean useMana(Player player, double amount) {
+        // Check for infinite mana
+        if (infiniteManaCommand != null && infiniteManaCommand.hasInfiniteMana(player)) {
+            PlayerMana mana = getPlayerMana(player);
+            mana.updateBossBar();
+            mana.resetHideTimer(plugin, HIDE_DELAY);
+            return true; // Always successful with infinite mana
+        }
+        
         PlayerMana mana = getPlayerMana(player);
         double current = mana.getCurrentMana();
         if (current >= amount) {

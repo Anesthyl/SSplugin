@@ -63,6 +63,7 @@ public class Enchants extends JavaPlugin implements Listener {
     private SpellGUI spellGUI;
     private ManaManager manaManager;
     private WarpManager warpManager;
+    private me.Anesthyl.enchants.Commands.InfiniteManaCommand infiniteManaCommand;
 
     @Override
     public void onEnable() {
@@ -196,6 +197,13 @@ public class Enchants extends JavaPlugin implements Listener {
         getCommand("delwarp").setExecutor(delWarpCmd);
         getCommand("delwarp").setTabCompleter(delWarpCmd);
 
+        // Infinite Mana command
+        infiniteManaCommand = new me.Anesthyl.enchants.Commands.InfiniteManaCommand(manaManager);
+        getCommand("infinitemana").setExecutor(infiniteManaCommand);
+        getCommand("infinitemana").setTabCompleter(infiniteManaCommand);
+        // Set the command reference in ManaManager
+        manaManager.setInfiniteManaCommand(infiniteManaCommand);
+
         getLogger().info("All custom enchants, spells, and commands registered!");
     }
 
@@ -267,5 +275,9 @@ public class Enchants extends JavaPlugin implements Listener {
         levelManager.removePlayer(player);
         // Clean up mana data
         manaManager.removePlayer(player);
+        // Clean up infinite mana tracking
+        if (infiniteManaCommand != null) {
+            infiniteManaCommand.removePlayer(player);
+        }
     }
 }

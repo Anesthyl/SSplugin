@@ -32,3 +32,6 @@ commands:
   delwarp:
     description: Delete one of your personal warps
     usage: /delwarp <name>
+  infinitemana:
+    description: Toggle infinite mana for yourself or another player
+    usage: /infinitemana [player]
